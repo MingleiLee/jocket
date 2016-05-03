@@ -121,7 +121,7 @@ public class JocketRedisStubStore implements JocketStubStore
 	{
 		String key = getPropKey(id);
 		String text = JocketRedisObjectNotation.toString(value);
-		JocketRedisExecutor.hsetOnKeyExist(key, field, text);
+		JocketRedisExecutor.hset(key, field, text);
 	}
 
 	@Override

@@ -1,5 +1,6 @@
 package com.jeedsoft.jocket.connection;
 
+import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -134,6 +135,9 @@ public class JocketStub
 		map.put(KEY_STATUS, status + "");
 		map.put(KEY_LAST_POLLING, lastPolling + "");
 		map.put(KEY_PARAMETERS, new JSONObject(parameterMap).toString());
+		if (lastPolling > 0) {
+			map.put("lastPolling$", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(lastPolling));
+		}
 		return map;
 	}
 	

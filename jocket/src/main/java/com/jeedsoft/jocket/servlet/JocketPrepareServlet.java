@@ -44,6 +44,7 @@ public class JocketPrepareServlet extends HttpServlet
 			for (Map.Entry<String, String[]> entry: request.getParameterMap().entrySet()) {
 				parameterMap.put(entry.getKey(), entry.getValue()[0]);
 			}
+			parameterMap.remove("jocket_rnd");
 			
 			//add stub
 			JocketStub stub = new JocketStub();

@@ -45,6 +45,13 @@ public class JocketRedisExecutor
 		}
 	}
 
+	public static long hset(String key, String field, String value)
+	{
+		try (Jedis jedis = JocketRedisManager.getJedis()) {
+			return jedis.hset(key, field, value);
+		}
+	}
+
 	public static long rpush(String key, String values)
 	{
 		try (Jedis jedis = JocketRedisManager.getJedis()) {
@@ -95,10 +102,10 @@ public class JocketRedisExecutor
 	{
 		String script	= "local exists = redis.call('exists', KEYS[1]) \n"
 						+ "if exists == 1 then \n"
-						+ 	"redis.call('hmset', KEYS[1], ARGV[1]) \n"
+						+ 	"redis.call('hmset', KEYS[1], unpack(ARGV)) \n"
 						+ "end \n"
 						+ "return exists";
-		return (Long)eval(script, new String[]{key}, new String[]{value}) == 1;
+		return (Long)eval(script, new String[]{key}, new String[]{field, value}) == 1;
 	}
 
 	public static JocketCasResult<Long> hcheckAndIncr(String key, String field, long oldValue)
