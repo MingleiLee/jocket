@@ -19,18 +19,26 @@ import com.jeedsoft.jocket.exception.JocketRuntimeException;
 import com.jeedsoft.jocket.util.StringUtil;
 import com.jeedsoft.jocket.websocket.JocketWebSocketEndpoint;
 
-public class JocketConfigManager
+public class JocketDeployer
 {
-	private static final Logger logger = LoggerFactory.getLogger(JocketConfigManager.class);
+	private static final Logger logger = LoggerFactory.getLogger(JocketDeployer.class);
 
 	private static final String WEBSOCKET_CONTAINER_KEY = "javax.websocket.server.ServerContainer";
 
 	private static Node root = new Node("", 0);
 	
-	public static void deploy(ServletContext context, Class<? extends JocketAbstractEndpoint> cls)
+	public static void deploy(ServletContext context, Class<? extends JocketAbstractEndpoint>[] classes)
+	{
+        JocketWebSocketEndpoint.setApplicationContextPath(context.getContextPath());
+		for (Class<? extends JocketAbstractEndpoint> cls: classes) {
+			deploy(context, cls);
+		}
+	}
+	
+	private static void deploy(ServletContext context, Class<? extends JocketAbstractEndpoint> cls)
 	{
 		if (!JocketAbstractEndpoint.class.isAssignableFrom(cls)) {
-			String message = "The jocket class '" + cls.getName() + "' must extends " + JocketAbstractEndpoint.class;
+			String message = "The Jocket class '" + cls.getName() + "' must extends " + JocketAbstractEndpoint.class;
 			throw new JocketRuntimeException(message);
 		}
         try {
@@ -40,17 +48,17 @@ public class JocketConfigManager
             ServerContainer container = (ServerContainer)context.getAttribute(WEBSOCKET_CONTAINER_KEY);
         	Builder builder = Builder.create(JocketWebSocketEndpoint.class, path);
         	container.addEndpoint(builder.build());
-        	add(new JocketConfig(annotation, cls));
+        	add(new JocketEndpointConfig(annotation, cls));
         }
         catch (DeploymentException e) {
-        	throw new JocketRuntimeException("Failed to deploy jocket.io as WebSocket", e);
+        	throw new JocketRuntimeException("Failed to deploy Jocket endpoint as WebSocket", e);
         }
 		catch (JocketException e) {
-        	throw new JocketRuntimeException("Failed to deploy jocket.io as WebSocket: " + e.getMessage(), e);
+        	throw new JocketRuntimeException("Failed to deploy Jocket endpoint: " + e.getMessage(), e);
 		}
 	}
 
-	private static synchronized void add(JocketConfig item) throws JocketException
+	private static synchronized void add(JocketEndpointConfig item) throws JocketException
 	{
 		String[] parts = StringUtil.split(item.getPath().replaceAll("^/$", ""), "/");
 		Node node = root;
@@ -64,15 +72,15 @@ public class JocketConfigManager
 		if (node.config != null) {
 			String cls1 = node.config.getHandlerClass().getName();
 			String cls2 = item.getHandlerClass().getName();
-			throw new JocketException("The path of jocket.io duplicated. class1=" + cls1 + ", class2=" + cls2);
+			throw new JocketException("The Jocket path duplicated. class1=" + cls1 + ", class2=" + cls2);
 		}
 		node.config = item;
 	}
 	
-	public static synchronized JocketConfig get(String path) throws JocketException
+	public static synchronized JocketEndpointConfig getConfig(String path) throws JocketException
 	{
 		if (StringUtil.isEmpty(path)) {
-			throw new JocketException("The request path for jocket.io cannot be empty.");
+			throw new JocketException("The Jocket request path cannot be empty.");
 		}
 		String[] parts = StringUtil.split(path.replaceAll("^/$|\\?.*", ""), "/");
 		List<Node> stack = new ArrayList<>(parts.length);
@@ -90,7 +98,7 @@ public class JocketConfigManager
 				return node.config;
 			}
 		}
-		throw new JocketException("Path not found in jocket.io: [" + path + "]");
+		throw new JocketException("Jocket path not found: [" + path + "]");
 	}
 	
 	public static synchronized void clear()
@@ -105,7 +113,7 @@ public class JocketConfigManager
 		return sb.toString();
 	}
 	
-	public static void fillTreeText(Node node, StringBuilder sb, List<Boolean> isAncestorLast)
+	private static void fillTreeText(Node node, StringBuilder sb, List<Boolean> isAncestorLast)
 	{
 		for (int i = 0, n = isAncestorLast.size() - 1; i < n; ++i) {
 			sb.append(isAncestorLast.get(i) ? "    " : "|   ");
@@ -135,7 +143,7 @@ public class JocketConfigManager
 		
 		private int level;
 		
-		private JocketConfig config;
+		private JocketEndpointConfig config;
 		
 		private Map<String, Node> children = new HashMap<>();
 

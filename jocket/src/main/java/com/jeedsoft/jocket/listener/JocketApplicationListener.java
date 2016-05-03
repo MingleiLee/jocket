@@ -3,13 +3,11 @@ package com.jeedsoft.jocket.listener;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
-import javax.servlet.annotation.WebListener;
 
-import com.jeedsoft.jocket.connection.JocketConnectionManager;
-import com.jeedsoft.jocket.endpoint.JocketConfigManager;
+import com.jeedsoft.jocket.JocketServer;
 import com.jeedsoft.jocket.websocket.JocketWebSocketEndpoint;
 
-@WebListener
+//@WebListener
 public class JocketApplicationListener implements ServletContextListener
 {
 	@Override
@@ -18,13 +16,12 @@ public class JocketApplicationListener implements ServletContextListener
         ServletContext context =  event.getServletContext();
         JocketWebSocketEndpoint.setApplicationContextPath(context.getContextPath());
 		JocketCleaner.start();
+		//TODO add auto-deployment codes here
 	}
 
 	@Override
 	public void contextDestroyed(ServletContextEvent event)
 	{
-		JocketCleaner.stop();
-		JocketConfigManager.clear();
-		JocketConnectionManager.clear();
+		JocketServer.stop();
 	}
 }

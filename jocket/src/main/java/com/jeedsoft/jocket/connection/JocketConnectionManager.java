@@ -18,14 +18,11 @@ public class JocketConnectionManager
 		JocketQueueManager.subscribe(connection, id);
 	}
 
-	public static synchronized void remove(JocketConnection connection)
+	public static synchronized void remove(String id)
 	{
-		String id = connection.getId();
-		if (map.get(id) == connection) {
-			map.remove(id);
-			JocketStubManager.setStatus(id, JocketStub.STATUS_RECONNECTING);
-		}
-		JocketQueueManager.unsubscribe(connection, id);
+		map.remove(id);
+		JocketStubManager.setStatus(id, JocketStub.STATUS_RECONNECTING);
+		JocketQueueManager.unsubscribe(id, false);
 	}
 
 	public static synchronized JocketConnection get(String id)

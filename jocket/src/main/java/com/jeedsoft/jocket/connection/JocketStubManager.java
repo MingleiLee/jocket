@@ -4,13 +4,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import com.jeedsoft.jocket.connection.impl.JocketStandaloneStubStore;
 import com.jeedsoft.jocket.endpoint.JocketAbstractEndpoint;
 import com.jeedsoft.jocket.event.JocketQueueManager;
+import com.jeedsoft.jocket.storage.memory.JocketMemoryStubStore;
 
 public class JocketStubManager
 {
-	private static JocketStubStore store = new JocketStandaloneStubStore();
+	private static JocketStubStore store = new JocketMemoryStubStore();
 
 	public static void setStore(JocketStubStore store)
 	{
@@ -27,8 +27,8 @@ public class JocketStubManager
 
 	public static void remove(String id)
 	{
+		JocketQueueManager.unsubscribe(id, true);
 		store.remove(id);
-		JocketQueueManager.unsubscribe(id);
 	}
 
 	public static JocketStub get(String id)
@@ -44,16 +44,6 @@ public class JocketStubManager
 	public static void setStatus(String id, int status)
 	{
 		store.setStatus(id, status);
-	}
-
-	public static int getTransport(String id)
-	{
-		return store.getTransport(id);
-	}
-
-	public static void setTransport(String id, int transport)
-	{
-		store.setTransport(id, transport);
 	}
 
 	public static long getLastPolling(String id)
@@ -104,5 +94,10 @@ public class JocketStubManager
 	public static boolean contains(String id)
 	{
 		return store.contains(id);
+	}
+
+	public static boolean applySchedule()
+	{
+		return store.applySchedule();
 	}
 }

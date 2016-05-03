@@ -402,7 +402,7 @@ jio.Ajax.prototype =
 				ajax.onfailure(event, status);
 			}
 			else {
-				throw "[jocket.io] AJAX failed";
+				throw "[Jocket] AJAX failed";
 			}
 		}
 	},

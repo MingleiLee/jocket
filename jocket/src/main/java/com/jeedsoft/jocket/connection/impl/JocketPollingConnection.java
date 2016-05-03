@@ -57,4 +57,10 @@ public class JocketPollingConnection extends JocketConnection
 			logger.error("[Jocket] Failed to send message: cid={}, event={}", connectionId, event);
 		}
 	}
+
+	@Override
+	public boolean isAutoNext()
+	{
+		return false;
+	}
 }

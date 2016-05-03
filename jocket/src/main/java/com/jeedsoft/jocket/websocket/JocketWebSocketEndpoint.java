@@ -20,8 +20,8 @@ import com.jeedsoft.jocket.connection.JocketStub;
 import com.jeedsoft.jocket.connection.JocketStubManager;
 import com.jeedsoft.jocket.connection.impl.JocketWebSocketConnection;
 import com.jeedsoft.jocket.endpoint.JocketCloseReason;
-import com.jeedsoft.jocket.endpoint.JocketConfig;
-import com.jeedsoft.jocket.endpoint.JocketConfigManager;
+import com.jeedsoft.jocket.endpoint.JocketEndpointConfig;
+import com.jeedsoft.jocket.endpoint.JocketDeployer;
 import com.jeedsoft.jocket.endpoint.JocketEndpointRunner;
 import com.jeedsoft.jocket.event.JocketEvent;
 import com.jeedsoft.jocket.exception.JocketException;
@@ -43,7 +43,7 @@ public class JocketWebSocketEndpoint extends Endpoint
 		
 		try {
 			//get stub and check status
-			JocketConfig config = JocketConfigManager.get(path);
+			JocketEndpointConfig config = JocketDeployer.getConfig(path);
 			String cid;
 			List<String> list = session.getRequestParameterMap().get("jocket_cid");
 			if (list == null) {
@@ -75,7 +75,6 @@ public class JocketWebSocketEndpoint extends Endpoint
 			setConfig(session, config);
 			setConnection(session, cn);
 			JocketConnectionManager.add(cn);
-			JocketStubManager.setTransport(cid, JocketStub.TRANSPORT_WEBSOCKET);
 			JocketEndpointRunner.doOpen(cn);
 			logger.debug("[Jocket] Jocket opened: transport=websocket, cid={}, path={}", cid, path);
 		}
@@ -87,18 +86,19 @@ public class JocketWebSocketEndpoint extends Endpoint
 	@Override
 	public void onClose(Session session, CloseReason closeReason)
 	{
-		JocketConfig config = getConfig(session); 
+		JocketEndpointConfig config = getConfig(session); 
 		JocketConnection cn = getConnection(session);
-		JocketConnectionManager.remove(cn);
+		String cid = cn.getId();
+		JocketConnectionManager.remove(cid);
 		JocketStub stub = JocketStubManager.get(cn.getId());
 		if (stub != null) {
 			cn.setStub(stub);
-			JocketStubManager.remove(cn.getId());
+			JocketStubManager.remove(cid);
 			int code = closeReason.getCloseCode().getCode();
 			String description = closeReason.getReasonPhrase();
 			JocketEndpointRunner.doClose(cn, new JocketCloseReason(code, description));
 		}
-		logger.debug("[Jocket] Jocket closed: transport=websocket, cid={}, path={}", cn.getId(), config.getPath());
+		logger.debug("[Jocket] Jocket closed: transport=websocket, cid={}, path={}", cid, config.getPath());
 	}
 	
 	@OnMessage
@@ -108,7 +108,7 @@ public class JocketWebSocketEndpoint extends Endpoint
 		JocketEvent event = JocketEvent.parse(message);
 		JocketEndpointRunner.doMessage(cn, event);
 		if (logger.isDebugEnabled()) {
-			JocketConfig config = getConfig(session); 
+			JocketEndpointConfig config = getConfig(session); 
 			Object[] args = {cn.getId(), config.getPath(), event};
 			logger.debug("[Jocket] Message received: transport=websocket, cid={}, path={}, event={}", args);
 		}
@@ -130,12 +130,12 @@ public class JocketWebSocketEndpoint extends Endpoint
 		}
 	}
 	
-	public static JocketConfig getConfig(Session session)
+	public static JocketEndpointConfig getConfig(Session session)
 	{
-		return (JocketConfig)session.getUserProperties().get("jocket_config");
+		return (JocketEndpointConfig)session.getUserProperties().get("jocket_config");
 	}
 
-	public static void setConfig(Session session, JocketConfig config)
+	public static void setConfig(Session session, JocketEndpointConfig config)
 	{
 		session.getUserProperties().put("jocket_config", config);
 	}

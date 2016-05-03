@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
 import com.jeedsoft.jocket.exception.JocketException;
 import com.jeedsoft.jocket.util.StringUtil;
 
-public class JocketConfig
+public class JocketEndpointConfig
 {
 	private Class<? extends JocketAbstractEndpoint> handlerClass;
 	
@@ -20,7 +20,7 @@ public class JocketConfig
 	
 	private List<String> pathParamNames;
 	
-	public JocketConfig(JocketEndpoint annotation, Class<? extends JocketAbstractEndpoint> cls) throws JocketException
+	public JocketEndpointConfig(JocketEndpoint annotation, Class<? extends JocketAbstractEndpoint> cls) throws JocketException
 	{
 		this.handlerClass = cls;
 		String annoPath = annotation.value();

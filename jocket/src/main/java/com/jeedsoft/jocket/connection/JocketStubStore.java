@@ -17,10 +17,6 @@ public interface JocketStubStore
 
 	void setStatus(String id, int status);
 
-	int getTransport(String id);
-
-	void setTransport(String id, int transport);
-
 	long getLastPolling(String id);
 
 	void setLastPolling(String id, long lastPolling);
@@ -40,4 +36,6 @@ public interface JocketStubStore
 	int size();
 
 	boolean contains(String id);
+
+	boolean applySchedule();
 }

@@ -45,9 +45,12 @@ public class JocketCleaner
 		@Override
 		public void run()
 		{
+			if (!JocketStubManager.applySchedule()) {
+				return;
+			}
 			List<JocketStub> corruptedStubs = JocketStubManager.checkCorruption();
 			for (JocketStub stub: corruptedStubs) {
-				JocketQueueManager.unsubscribe(stub.getId());
+				JocketQueueManager.unsubscribe(stub.getId(), true);
 				int code = JocketCloseReason.CLOSED_ABNORMALLY;
 				JocketCloseReason reason = new JocketCloseReason(code, "no new polling");
 				JocketEndpointRunner.doClose(new JocketPollingConnection(stub), reason);

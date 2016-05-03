@@ -62,7 +62,6 @@ public class JocketPollingServlet extends HttpServlet
 	        JocketStubManager.setLastPolling(cid, System.currentTimeMillis());
 	        JocketConnectionManager.add(cn);
 			if (isFirstPolling) {
-				JocketStubManager.setTransport(cid, JocketStub.TRANSPORT_POLLING);
 				JocketEndpointRunner.doOpen(cn);
 				logger.debug("[Jocket] Jocket opened: transport=long-polling, cid={}, path={}", cid, path);
 			}
@@ -116,7 +115,7 @@ public class JocketPollingServlet extends HttpServlet
 			        context.complete();
 				}
 				finally {
-			        JocketConnectionManager.remove(cn);
+			        JocketConnectionManager.remove(cn.getId());
 			        cn.setPollingContext(null);
 			        executed = true;
 				}

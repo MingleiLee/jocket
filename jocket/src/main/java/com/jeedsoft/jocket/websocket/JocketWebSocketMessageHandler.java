@@ -7,7 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.jeedsoft.jocket.connection.JocketConnection;
-import com.jeedsoft.jocket.endpoint.JocketConfig;
+import com.jeedsoft.jocket.endpoint.JocketEndpointConfig;
 import com.jeedsoft.jocket.endpoint.JocketEndpointRunner;
 import com.jeedsoft.jocket.event.JocketEvent;
 
@@ -25,7 +25,7 @@ class JocketWebSocketMessageHandler implements MessageHandler.Whole<String>
 	@Override
     public void onMessage(String text)
 	{
-		JocketConfig config = JocketWebSocketEndpoint.getConfig(session); 
+		JocketEndpointConfig config = JocketWebSocketEndpoint.getConfig(session); 
 		JocketConnection cn = JocketWebSocketEndpoint.getConnection(session); 
 		JocketEvent event = JocketEvent.parse(text);
 		JocketEndpointRunner.doMessage(cn, event);

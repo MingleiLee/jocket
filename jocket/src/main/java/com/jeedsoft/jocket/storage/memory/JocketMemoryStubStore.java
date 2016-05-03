@@ -1,4 +1,4 @@
-package com.jeedsoft.jocket.connection.impl;
+package com.jeedsoft.jocket.storage.memory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -7,9 +7,10 @@ import java.util.Map;
 
 import com.jeedsoft.jocket.connection.JocketStub;
 import com.jeedsoft.jocket.connection.JocketStubStore;
+import com.jeedsoft.jocket.connection.impl.JocketPollingConnection;
 import com.jeedsoft.jocket.endpoint.JocketAbstractEndpoint;
 
-public class JocketStandaloneStubStore implements JocketStubStore
+public class JocketMemoryStubStore implements JocketStubStore
 {
 	private Map<String, JocketStub> map = new HashMap<>();
 
@@ -47,22 +48,6 @@ public class JocketStandaloneStubStore implements JocketStubStore
 		}
 	}
 
-	@Override
-	public synchronized int getTransport(String id)
-	{
-		JocketStub stub = map.get(id);
-		return stub == null ? 0 : stub.getTransport();
-	}
-
-	@Override
-	public synchronized void setTransport(String id, int transport)
-	{
-		JocketStub stub = map.get(id);
-		if (stub != null) {
-			stub.setTransport(transport);
-		}
-	}
-
 	public synchronized long getLastPolling(String id)
 	{
 		JocketStub stub = map.get(id);
@@ -85,7 +70,7 @@ public class JocketStandaloneStubStore implements JocketStubStore
 	}
 
 	@Override
-	public String getParameter(String id, String key)
+	public synchronized String getParameter(String id, String key)
 	{
 		JocketStub stub = map.get(id);
 		return stub == null ? null : stub.getParameter(key);
@@ -142,5 +127,11 @@ public class JocketStandaloneStubStore implements JocketStubStore
 	public synchronized boolean contains(String id)
 	{
 		return map.containsKey(id);
+	}
+
+	@Override
+	public boolean applySchedule()
+	{
+		return true;
 	}
 }

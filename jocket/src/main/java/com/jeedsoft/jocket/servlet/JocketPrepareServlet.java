@@ -15,8 +15,8 @@ import org.slf4j.LoggerFactory;
 
 import com.jeedsoft.jocket.connection.JocketStub;
 import com.jeedsoft.jocket.connection.JocketStubManager;
-import com.jeedsoft.jocket.endpoint.JocketConfig;
-import com.jeedsoft.jocket.endpoint.JocketConfigManager;
+import com.jeedsoft.jocket.endpoint.JocketEndpointConfig;
+import com.jeedsoft.jocket.endpoint.JocketDeployer;
 import com.jeedsoft.jocket.exception.JocketException;
 import com.jeedsoft.jocket.util.IoUtil;
 
@@ -39,7 +39,7 @@ public class JocketPrepareServlet extends HttpServlet
 		try {
 			String path = request.getServletPath().replaceFirst("\\.jocket_prepare.*", "");
 			logger.debug("[Jocket] Jocket preparing: path={}, query string={}", path, request.getQueryString());
-			JocketConfig config = JocketConfigManager.get(path);
+			JocketEndpointConfig config = JocketDeployer.getConfig(path);
 			Map<String, String> parameterMap = config.getPathParameterMap(path);
 			for (Map.Entry<String, String[]> entry: request.getParameterMap().entrySet()) {
 				parameterMap.put(entry.getKey(), entry.getValue()[0]);
