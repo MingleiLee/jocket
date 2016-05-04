@@ -12,7 +12,7 @@ import com.jeedsoft.jocket.util.StringUtil;
 
 public class JocketEndpointConfig
 {
-	private Class<? extends JocketAbstractEndpoint> handlerClass;
+	private String endpointClassName;
 	
 	private String path;
 	
@@ -22,7 +22,7 @@ public class JocketEndpointConfig
 	
 	public JocketEndpointConfig(JocketEndpoint annotation, Class<? extends JocketAbstractEndpoint> cls) throws JocketException
 	{
-		this.handlerClass = cls;
+		this.endpointClassName = cls.getName();
 		String annoPath = annotation.value();
 		String regex = "(/([^/*\\{\\}]+|\\{[^/*\\{\\}]+\\}))+";
 		if (annoPath == null || (!annoPath.equals("/") && !Pattern.matches(regex, annoPath))) {
@@ -85,14 +85,9 @@ public class JocketEndpointConfig
 		this.pathParamNames = pathParamNames;
 	}
 
-	public Class<? extends JocketAbstractEndpoint> getHandlerClass()
+	public String getEndpointClassName()
 	{
-		return handlerClass;
-	}
-
-	public void setHandlerClass(Class<? extends JocketAbstractEndpoint> handlerClass)
-	{
-		this.handlerClass = handlerClass;
+		return endpointClassName;
 	}
 	
 	public Map<String, String> getPathParameterMap(String path) throws JocketException

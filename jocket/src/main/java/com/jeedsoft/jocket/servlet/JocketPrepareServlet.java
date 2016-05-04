@@ -40,18 +40,18 @@ public class JocketPrepareServlet extends HttpServlet
 			String path = request.getServletPath().replaceFirst("\\.jocket_prepare.*", "");
 			logger.debug("[Jocket] Jocket preparing: path={}, query string={}", path, request.getQueryString());
 			JocketEndpointConfig config = JocketDeployer.getConfig(path);
-			Map<String, String> parameterMap = config.getPathParameterMap(path);
+			Map<String, String> parameters = config.getPathParameterMap(path);
 			for (Map.Entry<String, String[]> entry: request.getParameterMap().entrySet()) {
-				parameterMap.put(entry.getKey(), entry.getValue()[0]);
+				parameters.put(entry.getKey(), entry.getValue()[0]);
 			}
-			parameterMap.remove("jocket_rnd");
+			parameters.remove("jocket_rnd");
 			
 			//add stub
 			JocketStub stub = new JocketStub();
 			stub.setHttpSessionId(request.getSession().getId());
-			stub.setHandlerClass(config.getHandlerClass());
+			stub.setEndpointClassName(config.getEndpointClassName());
+			stub.setParameters(parameters);
 			stub.setStatus(JocketStub.STATUS_PREPARED);
-			stub.setParameterMap(parameterMap);
 			String connectionId = JocketStubManager.add(stub);
 			
 			//set response

@@ -25,6 +25,7 @@ class JocketWebSocketMessageHandler implements MessageHandler.Whole<String>
 	@Override
     public void onMessage(String text)
 	{
+		//TODO heartbeat
 		JocketEndpointConfig config = JocketWebSocketEndpoint.getConfig(session); 
 		JocketConnection cn = JocketWebSocketEndpoint.getConnection(session); 
 		JocketEvent event = JocketEvent.parse(text);

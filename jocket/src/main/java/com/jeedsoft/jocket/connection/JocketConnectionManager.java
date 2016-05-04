@@ -14,15 +14,17 @@ public class JocketConnectionManager
 	{
 		String id = connection.getId();
 		map.put(id, connection);
-		JocketStubManager.setStatus(id, JocketStub.STATUS_CONNECTED);
+		connection.getStub().setStatus(JocketStub.STATUS_CONNECTED);
 		JocketQueueManager.subscribe(connection, id);
 	}
 
 	public static synchronized void remove(String id)
 	{
-		map.remove(id);
-		JocketStubManager.setStatus(id, JocketStub.STATUS_RECONNECTING);
-		JocketQueueManager.unsubscribe(id, false);
+		JocketConnection connection = map.remove(id);
+		if (connection != null) {
+			connection.getStub().setStatus(JocketStub.STATUS_RECONNECTING);
+			JocketQueueManager.unsubscribe(id, false);
+		}
 	}
 
 	public static synchronized JocketConnection get(String id)

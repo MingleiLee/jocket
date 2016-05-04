@@ -5,14 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.json.JSONObject;
-
 import com.jeedsoft.jocket.connection.JocketStub;
 import com.jeedsoft.jocket.connection.JocketStubStore;
-import com.jeedsoft.jocket.connection.impl.JocketPollingConnection;
-import com.jeedsoft.jocket.endpoint.JocketAbstractEndpoint;
-import com.jeedsoft.jocket.util.JocketJsonUtil;
-import com.jeedsoft.jocket.util.ReflectUtil;
 
 public class JocketRedisStubStore implements JocketStubStore
 {
@@ -21,107 +15,38 @@ public class JocketRedisStubStore implements JocketStubStore
 	@Override
 	public void add(JocketStub stub)
 	{
-		String key = getMainKey(stub.getId());
+		String key = getBaseKey(stub.getId());
 		JocketRedisExecutor.hmset(key, stub.toMap());
 	}
 
 	@Override
-	public void remove(String id)
+	public JocketStub remove(String id)
 	{
-		String[] keys = {getMainKey(id), getPropKey(id)};
-		JocketRedisExecutor.del(keys);
+		String baseKey = getBaseKey(id);
+		String attrKey = getAttrKey(id);
+		Map<String, String> baseData = JocketRedisExecutor.hgetAll(baseKey);
+		Map<String, String> attrData = JocketRedisExecutor.hgetAll(attrKey);
+		JocketStub stub = null;
+		if (!baseData.isEmpty()) {
+			Map<String, Object> attributes = new HashMap<>();
+			for (String k: attrData.keySet()) {
+				Object v = JocketRedisObjectNotation.toObject(attrData.get(k));
+				attributes.put(k, v);
+			}
+			stub = new JocketStub(baseData, attributes);
+		}
+		if (!baseData.isEmpty() || !attrData.isEmpty()) {
+			JocketRedisExecutor.del(baseKey, attrKey);
+		}
+		return stub;
 	}
 
 	@Override
 	public JocketStub get(String id)
 	{
-		String key = getMainKey(id);
+		String key = getBaseKey(id);
 		Map<String, String> map = JocketRedisExecutor.hgetAll(key);
-		return JocketStub.fromMap(map);
-	}
-
-	@Override
-	public int getStatus(String id)
-	{
-		String key = getMainKey(id);
-		String value = JocketRedisExecutor.hget(key, JocketStub.KEY_STATUS);
-		return value == null ? JocketStub.STATUS_INVALID : Integer.parseInt(value);
-	}
-
-	@Override
-	public void setStatus(String id, int status)
-	{
-		String key = getMainKey(id);
-		JocketRedisExecutor.hsetOnKeyExist(key, JocketStub.KEY_STATUS, status + "");
-	}
-
-	public long getLastPolling(String id)
-	{
-		String key = getMainKey(id);
-		String value = JocketRedisExecutor.hget(key, JocketStub.KEY_LAST_POLLING);
-		return value == null ? 0 : Long.parseLong(value);
-	}
-
-	public void setLastPolling(String id, long lastPolling)
-	{
-		String key = getMainKey(id);
-		JocketRedisExecutor.hsetOnKeyExist(key, JocketStub.KEY_LAST_POLLING, lastPolling + "");
-	}
-
-	@Override
-	public Class<? extends JocketAbstractEndpoint> getHandlerClass(String id)
-	{
-		String key = getMainKey(id);
-		String value = JocketRedisExecutor.hget(key, JocketStub.KEY_HANDLER_CLASS);
-		if (value == null) {
-			return null;
-		}
-		return ReflectUtil.getClass(value);
-	}
-
-	@Override
-	public String getParameter(String id, String key)
-	{
-		return getParameterMap(id).get(key);
-	}
-
-	@Override
-	public Map<String, String> getParameterMap(String id)
-	{
-		String key = getMainKey(id);
-		String value = JocketRedisExecutor.hget(key, JocketStub.KEY_PARAMETERS);
-		return value == null ? null : JocketJsonUtil.toStringMap(new JSONObject(value));
-	}
-
-	@Override
-	public synchronized <T> T getUserProperty(String id, String field)
-	{
-		String key = getPropKey(id);
-		String value = JocketRedisExecutor.hget(key, field);
-		if (value == null) {
-			return null;
-		}
-		return JocketRedisObjectNotation.toObject(value);
-	}
-
-	private Map<String, Object> getUserProperties(String id)
-	{
-		String key = getPropKey(id);
-		Map<String, String> map = JocketRedisExecutor.hgetAll(key);
-		Map<String, Object> properties = new HashMap<>();
-		for (String k : map.keySet()) {
-			Object v = JocketRedisObjectNotation.toObject(map.get(k));
-			properties.put(k, v);
-		}
-		return properties;
-	}
-
-	@Override
-	public synchronized <T> void setUserProperty(String id, String field, T value)
-	{
-		String key = getPropKey(id);
-		String text = JocketRedisObjectNotation.toString(value);
-		JocketRedisExecutor.hset(key, field, text);
+		return JocketRedisStub.fromMap(map);
 	}
 
 	@Override
@@ -135,54 +60,94 @@ public class JocketRedisStubStore implements JocketStubStore
 	}
 
 	@Override
-	public synchronized List<JocketStub> checkCorruption()
+	public synchronized List<JocketStub> checkStore()
 	{
-		List<JocketStub> corruptedStubs = new ArrayList<>();
-		long now = System.currentTimeMillis();
-		String pattern = getMainKeyPattern();
+		List<JocketStub> brokenStubs = new ArrayList<>();
+		String pattern = getBaseKeyPattern();
 		for (String key: JocketRedisExecutor.keys(pattern)) {
-			int end = key.lastIndexOf(':');
-			int start = key.lastIndexOf(':', end - 1);
-			String id = key.substring(start + 1, end);
-			long lastPolling = getLastPolling(id);
-			if (lastPolling > 0 && lastPolling + JocketPollingConnection.POLLING_INTERVAL + 20_000 < now) {
-				JocketStub stub = get(id);
-				stub.setUserProperties(getUserProperties(id));
-				corruptedStubs.add(stub);
+			Map<String, String> map = JocketRedisExecutor.hgetAll(key);
+			if (!map.isEmpty()) {
+				JocketStub stub = JocketRedisStub.fromMap(map);
+				if (stub.isBroken()) {
+					JocketStub localStub = remove(stub.getId());
+					if (localStub != null) {
+						brokenStubs.add(localStub);
+					}
+				}
 			}
 		}
-		for (JocketStub stub: corruptedStubs) {
-			remove(stub.getId());
-		}
-		return corruptedStubs;
+		return brokenStubs;
 	}
 
 	@Override
 	public synchronized int size()
 	{
-		String pattern = getMainKeyPattern();
+		String pattern = getBaseKeyPattern();
 		return JocketRedisExecutor.keys(pattern).size();
 	}
 
 	@Override
 	public synchronized boolean contains(String id)
 	{
-		String key = getMainKey(id);
+		String key = getBaseKey(id);
 		return JocketRedisExecutor.exists(key); //TODO optimize for performance
 	}
 
-	private String getMainKey(String id)
+	public String getBaseData(String id, String field)
 	{
-		return JocketRedisKey.PREFIX_STUB + ":" + id + ":" + JocketRedisKey.POSTFIX_MAIN;
+		String key = getBaseKey(id);
+		return JocketRedisExecutor.hget(key, field);
 	}
 
-	private String getPropKey(String id)
+	public int getBaseDataAsInt(String id, String field)
 	{
-		return JocketRedisKey.PREFIX_STUB + ":" + id + ":" + JocketRedisKey.POSTFIX_PROP;
+		String key = getBaseKey(id);
+		String value = JocketRedisExecutor.hget(key, field);
+		return value == null ? 0 : Integer.parseInt(value);
+	}
+
+	public long getBaseDataAsLong(String id, String field)
+	{
+		String key = getBaseKey(id);
+		String value = JocketRedisExecutor.hget(key, field);
+		return value == null ? 0 : Long.parseLong(value);
+	}
+
+	public boolean setBaseData(String id, String field, String value)
+	{
+		String key = getBaseKey(id);
+		return JocketRedisExecutor.hsetOnKeyExist(key, field, value);
+	}
+
+	public <T> T getAttribute(String id, String field)
+	{
+		String key = getAttrKey(id);
+		String text = JocketRedisExecutor.hget(key, field);
+		if (text == null) {
+			return null;
+		}
+		return JocketRedisObjectNotation.toObject(text);
+	}
+
+	public <T> void setAttribute(String id, String field, T value)
+	{
+		String key = getAttrKey(id);
+		String text = JocketRedisObjectNotation.toString(value);
+		JocketRedisExecutor.hset(key, field, text);
+	}
+
+	private String getBaseKey(String id)
+	{
+		return JocketRedisKey.PREFIX_STUB + ":" + id + ":" + JocketRedisKey.POSTFIX_BASE;
+	}
+
+	private String getAttrKey(String id)
+	{
+		return JocketRedisKey.PREFIX_STUB + ":" + id + ":" + JocketRedisKey.POSTFIX_ATTR;
 	}
 	
-	private String getMainKeyPattern()
+	private String getBaseKeyPattern()
 	{
-		return JocketRedisKey.PREFIX_STUB + ":*:" + JocketRedisKey.POSTFIX_MAIN;
+		return JocketRedisKey.PREFIX_STUB + ":*:" + JocketRedisKey.POSTFIX_BASE;
 	}
 }

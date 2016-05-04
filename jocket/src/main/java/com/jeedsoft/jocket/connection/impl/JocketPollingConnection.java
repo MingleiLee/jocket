@@ -20,21 +20,15 @@ public class JocketPollingConnection extends JocketConnection
 	
 	private AsyncContext context;
 	
-	public JocketPollingConnection(String id)
-	{
-		setId(id);
-	}
-
-	public JocketPollingConnection(String id, AsyncContext context)
-	{
-		setId(id);
-		this.context = context;
-	}
-	
 	public JocketPollingConnection(JocketStub stub)
 	{
-		setId(stub.getId());
-		setStub(stub);
+		super(stub);
+	}
+
+	public JocketPollingConnection(JocketStub stub, AsyncContext context)
+	{
+		super(stub);
+		this.context = context;
 	}
 
 	public AsyncContext getPollingContext()

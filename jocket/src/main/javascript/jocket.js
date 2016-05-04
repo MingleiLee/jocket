@@ -75,7 +75,7 @@ jio.Socket.prototype.open = function()
 	var ajax = new jio.Ajax();
 	ajax.url = socket.url.replace(/\?.*/, "") + ".jocket_prepare" + socket.url.replace(/[^\?]+/, "");
 	ajax.onsuccess = jio.Socket.doPrepareSuccess;
-	ajax.onfailire = jio.Socket.doPrepareFailure;
+	ajax.onfailure = jio.Socket.doPrepareFailure;
 	ajax.socket = socket;
 	ajax.submit();
 };
@@ -123,6 +123,7 @@ jio.Socket.doPrepareSuccess = function(response)
 
 jio.Socket.doPrepareFailure = function(response)
 {
+	//TODO
 	console.error("[Jocket] Jocket prepare failed");
 };
 
@@ -178,6 +179,7 @@ jio.Ws.doWebSocketClose = function(event)
 
 jio.Ws.doWebSocketError = function(event)
 {
+	//TODO
 	console.log("[Jocket] WebSocket error", event);
 };
 
@@ -237,7 +239,7 @@ jio.Polling.prototype.emit = function(message)
 
 jio.Polling.doSuccess = function(packet)
 {
-	console.log("[[Jocket] Packet received: transport=polling, data=%o", packet);
+	console.log("[Jocket] Packet received: transport=polling, data=%o", packet);
 	var polling = this.polling;
 	var socket = polling.socket;
 	polling.ajax = null;
@@ -265,6 +267,8 @@ jio.Polling.doEmitSuccess = function(response)
 
 jio.Polling.doEmitFailure = function(response)
 {
+	//TODO
+	console.error("[Jocket] Message emit failed");
 };
 
 //-----------------------------------------------------------------------
@@ -325,7 +329,7 @@ jio.Ajax._parseXmlHttpRequestResponse = function(xhr, status)
 			console.error("[Jocket] Invalid JSON format. url=%s, response=%s", ajax.url, text);
 		}
 	}
-	else {
+	else if (status != jio.Ajax.STATUS_ABORT) {
 		console.error("[Jocket] AJAX failed. url=%s, status=%d, http status=%d", ajax.url, status, xhr.status);
 	}
 	return result;
@@ -363,6 +367,7 @@ jio.Ajax.prototype =
 
 	abort: function()
 	{
+		this.onfailure = null;
 		this._xhr.abort();
 	},
 	
@@ -400,9 +405,6 @@ jio.Ajax.prototype =
 		else {
 			if (ajax.onfailure != null) {
 				ajax.onfailure(event, status);
-			}
-			else {
-				throw "[Jocket] AJAX failed";
 			}
 		}
 	},

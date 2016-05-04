@@ -1,16 +1,19 @@
 package com.jeedsoft.jocket.connection;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
-import com.jeedsoft.jocket.endpoint.JocketAbstractEndpoint;
 import com.jeedsoft.jocket.event.JocketQueueManager;
 import com.jeedsoft.jocket.storage.memory.JocketMemoryStubStore;
 
 public class JocketStubManager
 {
 	private static JocketStubStore store = new JocketMemoryStubStore();
+
+	public static JocketStubStore getStore()
+	{
+		return store;
+	}
 
 	public static void setStore(JocketStubStore store)
 	{
@@ -19,71 +22,26 @@ public class JocketStubManager
 
 	public static String add(JocketStub stub)
 	{
-		String id = UUID.randomUUID().toString();
-		stub.setId(id);
+		stub.setId(UUID.randomUUID().toString());
+		stub.setStartTime(System.currentTimeMillis());
 		store.add(stub);
-		return id;
+		return stub.getId();
 	}
 
-	public static void remove(String id)
+	public static JocketStub remove(String id)
 	{
 		JocketQueueManager.unsubscribe(id, true);
-		store.remove(id);
+		return store.remove(id);
 	}
 
 	public static JocketStub get(String id)
 	{
 		return store.get(id);
 	}
-
-	public static void getStatus(String id)
-	{
-		store.getStatus(id);
-	}
-
-	public static void setStatus(String id, int status)
-	{
-		store.setStatus(id, status);
-	}
-
-	public static long getLastPolling(String id)
-	{
-		return store.getLastPolling(id);
-	}
-
-	public static void setLastPolling(String id, long lastPolling)
-	{
-		store.setLastPolling(id, lastPolling);
-	}
-
-	public static String getParameter(String id, String key)
-	{
-		return store.getParameter(id, key);
-	}
-
-	public static Map<String, String> getParameterMap(String id)
-	{
-		return store.getParameterMap(id);
-	}
-
-	public static <T> T getUserProperty(String id, String key)
-	{
-		return store.getUserProperty(id, key);
-	}
-
-	public static <T> void setUserProperty(String id, String key, T value)
-	{
-		store.setUserProperty(id, key, value);
-	}
-
-	public static Class<? extends JocketAbstractEndpoint> getHandlerClass(String id)
-	{
-		return store.getHandlerClass(id);
-	}
 	
 	public static List<JocketStub> checkCorruption()
 	{
-		return store.checkCorruption();
+		return store.checkStore();
 	}
 	
 	public static int size()

@@ -8,7 +8,6 @@ import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.Endpoint;
 import javax.websocket.EndpointConfig;
-import javax.websocket.OnMessage;
 import javax.websocket.Session;
 
 import org.slf4j.Logger;
@@ -20,8 +19,8 @@ import com.jeedsoft.jocket.connection.JocketStub;
 import com.jeedsoft.jocket.connection.JocketStubManager;
 import com.jeedsoft.jocket.connection.impl.JocketWebSocketConnection;
 import com.jeedsoft.jocket.endpoint.JocketCloseReason;
-import com.jeedsoft.jocket.endpoint.JocketEndpointConfig;
 import com.jeedsoft.jocket.endpoint.JocketDeployer;
+import com.jeedsoft.jocket.endpoint.JocketEndpointConfig;
 import com.jeedsoft.jocket.endpoint.JocketEndpointRunner;
 import com.jeedsoft.jocket.event.JocketEvent;
 import com.jeedsoft.jocket.exception.JocketException;
@@ -47,33 +46,34 @@ public class JocketWebSocketEndpoint extends Endpoint
 			String cid;
 			List<String> list = session.getRequestParameterMap().get("jocket_cid");
 			if (list == null) {
-				Map<String, String> parameterMap = config.getPathParameterMap(path);
+				Map<String, String> parameters = config.getPathParameterMap(path);
 				for (Map.Entry<String, List<String>> entry: session.getRequestParameterMap().entrySet()) {
-					parameterMap.put(entry.getKey(), entry.getValue().get(0));
+					parameters.put(entry.getKey(), entry.getValue().get(0));
 				}
 				JocketStub stub = new JocketStub();
-				stub.setHandlerClass(config.getHandlerClass());
+				stub.setEndpointClassName(config.getEndpointClassName());
+				stub.setParameters(parameters);
 				stub.setStatus(JocketStub.STATUS_PREPARED);
-				stub.setParameterMap(parameterMap);
 				cid = JocketStubManager.add(stub);
 			}
 			else {
 				cid = list.get(0);
-				JocketStub stub = JocketStubManager.get(cid);
-				if (stub == null) {
-					throw new JocketException("Jocket connection id not found: " + cid);
-				}
-				int status = stub.getStatus();
-				if (status != JocketStub.STATUS_PREPARED) {
-					throw new JocketException("Jocket status invalid: cid=" + cid + ", status=" + status);
-				}
+			}
+			JocketStub stub = JocketStubManager.get(cid);
+			if (stub == null) {
+				throw new JocketException("Jocket connection id not found: " + cid);
+			}
+			String status = stub.getStatus();
+			if (JocketStub.STATUS_PREPARED.equals(status)) {
+				throw new JocketException("Jocket status invalid: cid=" + cid + ", status=" + status);
 			}
 			
 			//add to connection manager
-			JocketWebSocketConnection cn = new JocketWebSocketConnection(cid, session);
+			JocketWebSocketConnection cn = new JocketWebSocketConnection(stub, session);
 			session.addMessageHandler(new JocketWebSocketMessageHandler(session));
 			setConfig(session, config);
 			setConnection(session, cn);
+			stub.setTransport(JocketStub.TRANSPORT_WEBSOCKET);
 			JocketConnectionManager.add(cn);
 			JocketEndpointRunner.doOpen(cn);
 			logger.debug("[Jocket] Jocket opened: transport=websocket, cid={}, path={}", cid, path);
@@ -90,28 +90,14 @@ public class JocketWebSocketEndpoint extends Endpoint
 		JocketConnection cn = getConnection(session);
 		String cid = cn.getId();
 		JocketConnectionManager.remove(cid);
-		JocketStub stub = JocketStubManager.get(cn.getId());
+		JocketStub stub = JocketStubManager.remove(cid);
 		if (stub != null) {
 			cn.setStub(stub);
-			JocketStubManager.remove(cid);
 			int code = closeReason.getCloseCode().getCode();
 			String description = closeReason.getReasonPhrase();
 			JocketEndpointRunner.doClose(cn, new JocketCloseReason(code, description));
 		}
 		logger.debug("[Jocket] Jocket closed: transport=websocket, cid={}, path={}", cid, config.getPath());
-	}
-	
-	@OnMessage
-	public void onMessage(String message, Session session)
-	{
-		JocketConnection cn = getConnection(session); 
-		JocketEvent event = JocketEvent.parse(message);
-		JocketEndpointRunner.doMessage(cn, event);
-		if (logger.isDebugEnabled()) {
-			JocketEndpointConfig config = getConfig(session); 
-			Object[] args = {cn.getId(), config.getPath(), event};
-			logger.debug("[Jocket] Message received: transport=websocket, cid={}, path={}, event={}", args);
-		}
 	}
 
 	@Override

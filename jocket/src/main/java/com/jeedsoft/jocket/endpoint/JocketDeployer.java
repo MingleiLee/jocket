@@ -70,8 +70,8 @@ public class JocketDeployer
 			node = node.children.get(part);
 		}
 		if (node.config != null) {
-			String cls1 = node.config.getHandlerClass().getName();
-			String cls2 = item.getHandlerClass().getName();
+			String cls1 = node.config.getEndpointClassName();
+			String cls2 = item.getEndpointClassName();
 			throw new JocketException("The Jocket path duplicated. class1=" + cls1 + ", class2=" + cls2);
 		}
 		node.config = item;
@@ -123,7 +123,7 @@ public class JocketDeployer
 		}
 		sb.append(node);
 		if (node.config != null) {
-			sb.append(" (").append(node.config.getHandlerClass().getName()).append(")");
+			sb.append(" (").append(node.config.getEndpointClassName()).append(")");
 		}
 		sb.append("\n");
 		if (!node.children.isEmpty()) {

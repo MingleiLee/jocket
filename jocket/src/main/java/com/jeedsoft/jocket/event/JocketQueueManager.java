@@ -1,5 +1,6 @@
 package com.jeedsoft.jocket.event;
 
+import com.jeedsoft.jocket.connection.JocketStub;
 import com.jeedsoft.jocket.connection.JocketStubManager;
 import com.jeedsoft.jocket.storage.memory.JocketMemoryQueue;
 
@@ -29,7 +30,11 @@ public class JocketQueueManager
 
 	public static void publish(String connectionId, JocketEvent event)
 	{
-		if (JocketStubManager.contains(connectionId)) {
+		JocketStub stub = JocketStubManager.get(connectionId);
+		if (stub != null) {
+			if (event.getType() == JocketEvent.TYPE_NORMAL) {
+				stub.setLastMessageTime(System.currentTimeMillis());
+			}
 			queue.publish(connectionId, event);
 		}
 	}

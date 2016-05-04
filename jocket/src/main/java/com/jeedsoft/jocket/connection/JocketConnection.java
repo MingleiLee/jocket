@@ -6,21 +6,20 @@ import com.jeedsoft.jocket.endpoint.JocketAbstractEndpoint;
 import com.jeedsoft.jocket.event.JocketEvent;
 import com.jeedsoft.jocket.event.JocketQueueManager;
 import com.jeedsoft.jocket.event.JocketSubscriber;
+import com.jeedsoft.jocket.util.ReflectUtil;
 
 public abstract class JocketConnection implements JocketSubscriber
 {
-	private String id;
-
 	private JocketStub stub;
 
-	public String getId()
+	public JocketConnection(JocketStub stub)
 	{
-		return id;
+		this.stub = stub;
 	}
 
-	public void setId(String id)
+	public JocketStub getStub()
 	{
-		this.id = id;
+		return stub;
 	}
 
 	public void setStub(JocketStub stub)
@@ -28,44 +27,69 @@ public abstract class JocketConnection implements JocketSubscriber
 		this.stub = stub;
 	}
 
-	public Class<? extends JocketAbstractEndpoint> getHandlerClass()
+	public String getId()
 	{
-		if (stub == null) {
-			return JocketStubManager.getHandlerClass(id);
-		}
-		else {
-			return stub.getHandlerClass();
-		}
+		return stub.getId();
+	}
+
+	public Class<? extends JocketAbstractEndpoint> getEndpointClass()
+	{
+		return ReflectUtil.getClass(stub.getEndpointClassName());
+	}
+
+	public String getTransport()
+	{
+		return stub.getTransport();
+	}
+
+	public String getStatus()
+	{
+		return stub.getStatus();
+	}
+	
+	public long getLastHeartbeatTime()
+	{
+		return stub.getLastHeartbeatTime();
+	}
+	
+	public long getLastMessageTime()
+	{
+		return stub.getLastMessageTime();
+	}
+
+	public int getTimeoutSeconds()
+	{
+		return stub.getTimeoutSeconds();
+	}
+
+	public void setTimeoutSeconds(int timeoutSeconds)
+	{
+		stub.setTimeoutSeconds(timeoutSeconds);
 	}
 
 	public String getParameter(String key)
 	{
-		return stub == null ? JocketStubManager.getParameter(id, key) : stub.getParameter(key);
+		return stub.getParameter(key);
 	}
 
-	public Map<String, String> getParameterMap()
+	public Map<String, String> getParameters()
 	{
-		return stub == null ? JocketStubManager.getParameterMap(id) : stub.getParameterMap();
+		return stub.getParameters();
 	}
 
-	public <T> T getUserProperty(String key)
+	public <T> T getAttribute(String key)
 	{
-		if (stub == null) {
-			return JocketStubManager.getUserProperty(id, key);
-		}
-		else {
-			return stub.getUserProperty(key);
-		}
+		return stub.getAttribute(key);
 	}
 
-	public <T> void setUserProperty(String key, T value)
+	public <T> void setAttribute(String key, T value)
 	{
-		JocketStubManager.setUserProperty(id, key, value);
+		stub.setAttribute(key, value);
 	}
 
 	public void emit(String eventName, Object data)
 	{
 		JocketEvent event = new JocketEvent(JocketEvent.TYPE_NORMAL, eventName, data);
-		JocketQueueManager.publish(getId(), event);
+		JocketQueueManager.publish(stub.getId(), event);
 	}
 }

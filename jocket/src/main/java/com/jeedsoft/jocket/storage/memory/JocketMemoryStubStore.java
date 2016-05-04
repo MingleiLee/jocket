@@ -7,8 +7,6 @@ import java.util.Map;
 
 import com.jeedsoft.jocket.connection.JocketStub;
 import com.jeedsoft.jocket.connection.JocketStubStore;
-import com.jeedsoft.jocket.connection.impl.JocketPollingConnection;
-import com.jeedsoft.jocket.endpoint.JocketAbstractEndpoint;
 
 public class JocketMemoryStubStore implements JocketStubStore
 {
@@ -21,9 +19,9 @@ public class JocketMemoryStubStore implements JocketStubStore
 	}
 
 	@Override
-	public synchronized void remove(String id)
+	public synchronized JocketStub remove(String id)
 	{
-		map.remove(id);
+		return map.remove(id);
 	}
 
 	@Override
@@ -33,88 +31,18 @@ public class JocketMemoryStubStore implements JocketStubStore
 	}
 
 	@Override
-	public synchronized int getStatus(String id)
+	public synchronized List<JocketStub> checkStore()
 	{
-		JocketStub stub = map.get(id);
-		return stub == null ? 0 : stub.getStatus();
-	}
-
-	@Override
-	public synchronized void setStatus(String id, int status)
-	{
-		JocketStub stub = map.get(id);
-		if (stub != null) {
-			stub.setStatus(status);
-		}
-	}
-
-	public synchronized long getLastPolling(String id)
-	{
-		JocketStub stub = map.get(id);
-		return stub == null ? 0 : stub.getLastPolling();
-	}
-
-	public synchronized void setLastPolling(String id, long lastPolling)
-	{
-		JocketStub stub = map.get(id);
-		if (stub != null) {
-			stub.setLastPolling(lastPolling);
-		}
-	}
-
-	@Override
-	public synchronized Class<? extends JocketAbstractEndpoint> getHandlerClass(String id)
-	{
-		JocketStub stub = map.get(id);
-		return stub == null ? null : stub.getHandlerClass();
-	}
-
-	@Override
-	public synchronized String getParameter(String id, String key)
-	{
-		JocketStub stub = map.get(id);
-		return stub == null ? null : stub.getParameter(key);
-	}
-
-	@Override
-	public synchronized Map<String, String> getParameterMap(String id)
-	{
-		JocketStub stub = map.get(id);
-		return stub == null ? null : stub.getParameterMap();
-	}
-
-	@Override
-	@SuppressWarnings("unchecked")
-	public synchronized <T> T getUserProperty(String id, String key)
-	{
-		JocketStub stub = map.get(id);
-		return stub == null ? null : (T)stub.getUserProperty(key);
-	}
-
-	@Override
-	public synchronized <T> void setUserProperty(String id, String key, T value)
-	{
-		JocketStub stub = map.get(id);
-		if (stub != null) {
-			stub.setUserProperty(key, value);
-		}
-	}
-
-	@Override
-	public synchronized List<JocketStub> checkCorruption()
-	{
-		List<JocketStub> corruptedStubs = new ArrayList<>();
-		long now = System.currentTimeMillis();
+		List<JocketStub> brokenStubs = new ArrayList<>();
 		for (JocketStub stub: map.values()) {
-			long lastPolling = stub.getLastPolling();
-			if (lastPolling > 0 && lastPolling + JocketPollingConnection.POLLING_INTERVAL + 20_000 < now) {
-				corruptedStubs.add(stub);
+			if (stub.isBroken()) {
+				brokenStubs.add(stub);
 			}
 		}
-		for (JocketStub stub: corruptedStubs) {
+		for (JocketStub stub: brokenStubs) {
 			map.remove(stub.getId());
 		}
-		return corruptedStubs;
+		return brokenStubs;
 	}
 
 	@Override

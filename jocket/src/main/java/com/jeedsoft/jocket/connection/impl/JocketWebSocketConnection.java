@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.jeedsoft.jocket.connection.JocketConnection;
+import com.jeedsoft.jocket.connection.JocketStub;
 import com.jeedsoft.jocket.event.JocketEvent;
 import com.jeedsoft.jocket.websocket.JocketWebSocketEndpoint;
 
@@ -15,11 +16,13 @@ public class JocketWebSocketConnection extends JocketConnection
 {
 	private static final Logger logger = LoggerFactory.getLogger(JocketWebSocketConnection.class);
 	
+	public static final long HEARTBEAT_INTERVAL = 60_000;
+
 	private Session session;
 
-	public JocketWebSocketConnection(String id, Session session)
+	public JocketWebSocketConnection(JocketStub stub, Session session)
 	{
-		setId(id);
+		super(stub);
 		this.session = session;
 	}
 

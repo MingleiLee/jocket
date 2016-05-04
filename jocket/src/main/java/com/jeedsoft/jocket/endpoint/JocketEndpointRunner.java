@@ -37,7 +37,7 @@ public class JocketEndpointRunner
 
 		public void run()
 		{
-			Class<? extends JocketAbstractEndpoint> cls = cn.getHandlerClass();
+			Class<? extends JocketAbstractEndpoint> cls = cn.getEndpointClass();
 			if (logger.isTraceEnabled()) {
 				Object[] args = {cn.getId(), cls.getName()};
 				logger.trace("[Jocket] Invoking endpoint: cid={}, method={}.onOpen", args);
@@ -66,7 +66,7 @@ public class JocketEndpointRunner
 
 		public void run()
 		{
-			Class<? extends JocketAbstractEndpoint> cls = cn.getHandlerClass();
+			Class<? extends JocketAbstractEndpoint> cls = cn.getEndpointClass();
 			if (logger.isTraceEnabled()) {
 				Object[] args = {cn.getId(), cls.getName(), reason};
 				logger.trace("[Jocket] Invoking endpoint: cid={}, method={}.onClose, reason={}", args);
@@ -95,12 +95,13 @@ public class JocketEndpointRunner
 
 		public void run()
 		{
-			Class<? extends JocketAbstractEndpoint> cls = cn.getHandlerClass();
+			Class<? extends JocketAbstractEndpoint> cls = cn.getEndpointClass();
 			if (logger.isTraceEnabled()) {
 				Object[] args = {cn.getId(), cls.getName(), event};
 				logger.trace("[Jocket] Invoking endpoint: cid={}, method={}.onMessage, event={}", args);
 			}
 			try {
+				cn.getStub().setLastMessageTime(System.currentTimeMillis());
 				JocketAbstractEndpoint endpoint = ReflectUtil.newInstance(cls);
 				endpoint.onMessage(cn, event.getName(), event.getData());
 			}
