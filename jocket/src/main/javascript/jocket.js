@@ -1,33 +1,8 @@
 //-----------------------------------------------------------------------
-// jio
+// Jocket
 //-----------------------------------------------------------------------
 
-var jio = 
-{
-	//packet types
-	PACKET_TYPE_CLOSE	: 1,
-	PACKET_TYPE_TIMEOUT	: 2,
-	
-	//close reason codes
-	CLOSE_NORMAL	: 1000,
-	CLOSE_AWAY		: 1001,	//close browser or reload page
-	CLOSE_ABNORMAL	: 1006,	//network error
-	
-	//pre-defined events
-	EVENT_OPEN	: "open",
-	EVENT_CLOSE	: "close",
-	
-	connect: function(url, options)
-	{
-		return new jio.Socket(url, options);
-	}
-};
-
-//-----------------------------------------------------------------------
-// jio.Socket
-//-----------------------------------------------------------------------
-
-jio.Socket = function(url, options)
+var Jocket = function(url, options)
 {
 	if (url == null || url == "") {
 		throw "The URL should not be empty";
@@ -42,7 +17,7 @@ jio.Socket = function(url, options)
 	this._transports = [];
 	for (var i = 0, list = this.options.transports || ["websocket", "polling"]; i < list.length; ++i) {
 		var t = list[i];
-		if (jio.Socket.impls[t] == null) {
+		if (Jocket.impls[t] == null) {
 			throw "Invalid transport: " + t;
 		}
 		if (t != "websocket" || window.WebSocket != null) {
@@ -59,7 +34,7 @@ jio.Socket = function(url, options)
 	}
 };
 
-jio.Socket.prototype.emit = function(eventName, data)
+Jocket.prototype.emit = function(eventName, data)
 {
 	var socket = this;
 	if (socket._transport == null) {
@@ -69,18 +44,23 @@ jio.Socket.prototype.emit = function(eventName, data)
 	return true;
 };
 
-jio.Socket.prototype.open = function()
+Jocket.prototype.send = function(data)
+{
+	return this.emit("message", data);
+};
+
+Jocket.prototype.open = function()
 {
 	var socket = this;
-	var ajax = new jio.Ajax();
+	var ajax = new Jocket.Ajax();
 	ajax.url = socket.url.replace(/\?.*/, "") + ".jocket_prepare" + socket.url.replace(/[^\?]+/, "");
-	ajax.onsuccess = jio.Socket.doPrepareSuccess;
-	ajax.onfailure = jio.Socket.doPrepareFailure;
+	ajax.onsuccess = Jocket.doPrepareSuccess;
+	ajax.onfailure = Jocket.doPrepareFailure;
 	ajax.socket = socket;
 	ajax.submit();
 };
 
-jio.Socket.prototype.close = function(eventName, data)
+Jocket.prototype.close = function(eventName, data)
 {
 	var socket = this;
 	if (socket._transport != null) {
@@ -89,12 +69,12 @@ jio.Socket.prototype.close = function(eventName, data)
 	}
 };
 
-jio.Socket.prototype.isOpen = function()
+Jocket.prototype.isOpen = function()
 {
 	return this._transport != null;
 };
 
-jio.Socket.prototype.on = function(eventName, listener)
+Jocket.prototype.on = function(eventName, listener)
 {
 	var socket = this;
 	socket._listeners[eventName] = socket._listeners[eventName] || [];
@@ -102,7 +82,7 @@ jio.Socket.prototype.on = function(eventName, listener)
 	return socket;
 };
 
-jio.Socket.prototype._fire = function(eventName, eventData)
+Jocket.prototype._fire = function(eventName, eventData)
 {
 	var socket = this;
 	var listeners = socket._listeners[eventName];
@@ -114,76 +94,86 @@ jio.Socket.prototype._fire = function(eventName, eventData)
 	}
 };
 
-jio.Socket.doPrepareSuccess = function(response)
+Jocket.doPrepareSuccess = function(response)
 {
 	var socket = this.socket;
 	socket.connectionId = response.connectionId;
-	socket._transport = new jio.Socket.impls[socket._transports[0]](socket); //TODO try next if failed
+	socket._transport = new Jocket.impls[socket._transports[0]](socket); //TODO try next if failed
 };
 
-jio.Socket.doPrepareFailure = function(response)
+Jocket.doPrepareFailure = function(response)
 {
 	//TODO
 	console.error("[Jocket] Jocket prepare failed");
 };
 
-jio.Socket.impls = {};
+Jocket.impls = {};
+
+Jocket.PACKET_TYPE_CLOSE	= 1,
+Jocket.PACKET_TYPE_TIMEOUT	= 2,
+
+Jocket.CLOSE_NORMAL			= 1000,
+Jocket.CLOSE_AWAY			= 1001,	//close browser or reload page
+Jocket.CLOSE_ABNORMAL		= 1006,	//network error
+
+Jocket.EVENT_OPEN			= "open",
+Jocket.EVENT_CLOSE			= "close",
 
 //-----------------------------------------------------------------------
-// jio.WebSocket
+// Jocket.WebSocket
 //-----------------------------------------------------------------------
 
-jio.Ws = jio.Socket.impls["websocket"] = function(socket)
+Jocket.Ws = Jocket.impls["websocket"] = function(socket)
 {
 	this.socket = socket;
 	this.url = socket.url.replace(/^http/, "ws").replace(/\?.*/, "") + "?jocket_cid=" + socket.connectionId;
 	this.open();
 };
 
-jio.Ws.prototype.open = function()
+Jocket.Ws.prototype.open = function()
 {
 	var ws = this;
 	ws.webSocket = new WebSocket(ws.url);
 	ws.webSocket.ws = ws;
-	ws.webSocket.onopen	= jio.Ws.doWebSocketOpen;
-	ws.webSocket.onclose = jio.Ws.doWebSocketClose;
-	ws.webSocket.onerror = jio.Ws.doWebSocketError;
-	ws.webSocket.onmessage = jio.Ws.doWebSocketMessage;
+	ws.webSocket.onopen	= Jocket.Ws.doWebSocketOpen;
+	ws.webSocket.onclose = Jocket.Ws.doWebSocketClose;
+	ws.webSocket.onerror = Jocket.Ws.doWebSocketError;
+	ws.webSocket.onmessage = Jocket.Ws.doWebSocketMessage;
 };
 
-jio.Ws.prototype.close = function(eventName, data)
+Jocket.Ws.prototype.close = function(eventName, data)
 {
 	this.webSocket.close();
 };
 
-jio.Ws.prototype.emit = function(message)
+Jocket.Ws.prototype.emit = function(message)
 {
 	this.webSocket.send(JSON.stringify(message));
 };
 
-jio.Ws.doWebSocketOpen = function()
+Jocket.Ws.doWebSocketOpen = function()
 {
 	var ws = this.ws;
-	ws.socket._fire(jio.EVENT_OPEN);
+	ws.socket._fire(Jocket.EVENT_OPEN);
 };
 
-jio.Ws.doWebSocketClose = function(event)
+Jocket.Ws.doWebSocketClose = function(event)
 {
 	var ws = this.ws;
 	ws.socket._transport = null;
-	ws.socket._fire(jio.EVENT_CLOSE, {code:event.code, description:event.reason});
+	ws.socket._fire(Jocket.EVENT_CLOSE, {code:event.code, description:event.reason});
 	ws.socket = null;
 	ws.webSocket.ws = null;
 	ws.webSocket = null;
 };
 
-jio.Ws.doWebSocketError = function(event)
+Jocket.Ws.doWebSocketError = function(event)
 {
 	//TODO
 	console.log("[Jocket] WebSocket error", event);
 };
 
-jio.Ws.doWebSocketMessage = function(event)
+Jocket.Ws.doWebSocketMessage = function(event)
 {
 	var ws = this.ws;
 	var packet = JSON.parse(event.data);
@@ -192,30 +182,30 @@ jio.Ws.doWebSocketMessage = function(event)
 };
 
 //-----------------------------------------------------------------------
-// jio.Polling
+// Jocket.Polling
 //-----------------------------------------------------------------------
 
-jio.Polling = jio.Socket.impls["polling"] = function(socket)
+Jocket.Polling = Jocket.impls["polling"] = function(socket)
 {
 	this.socket = socket;
 	this.url = socket.url.replace(/\?.*/, "") + ".jocket_polling?jocket_cid=" + socket.connectionId;
 	this.poll();
-	socket._fire(jio.EVENT_OPEN);
+	socket._fire(Jocket.EVENT_OPEN);
 };
 
-jio.Polling.prototype.poll = function()
+Jocket.Polling.prototype.poll = function()
 {
 	var polling = this;
-	var ajax = new jio.Ajax(polling.url);
+	var ajax = new Jocket.Ajax(polling.url);
 	polling.ajax = ajax;
 	ajax.timeout = 35000;
-	ajax.onsuccess = jio.Polling.doSuccess;
-	ajax.onfailure = jio.Polling.doFailure;
+	ajax.onsuccess = Jocket.Polling.doSuccess;
+	ajax.onfailure = Jocket.Polling.doFailure;
 	ajax.polling = polling;
 	ajax.submit();
 };
 
-jio.Polling.prototype.close = function()
+Jocket.Polling.prototype.close = function()
 {
 	var polling = this;
 	var socket = polling.socket;
@@ -223,99 +213,99 @@ jio.Polling.prototype.close = function()
 		polling.ajax.abort();
 		polling.ajax = null;
 	}
-	var ajax = new jio.Ajax(polling.url);
-	ajax.submit({type:jio.PACKET_TYPE_CLOSE});
-	socket._fire(jio.EVENT_CLOSE, {code:jio.CLOSE_NORMAL});
+	var ajax = new Jocket.Ajax(polling.url);
+	ajax.submit({type:Jocket.PACKET_TYPE_CLOSE});
+	socket._fire(Jocket.EVENT_CLOSE, {code:Jocket.CLOSE_NORMAL});
 };
 
-jio.Polling.prototype.emit = function(message)
+Jocket.Polling.prototype.emit = function(message)
 {
 	var polling = this;
-	var ajax = new jio.Ajax(polling.url);
-	ajax.onsuccess = jio.Polling.doEmitSuccess;
-	ajax.onfailure = jio.Polling.doEmitFailure;
+	var ajax = new Jocket.Ajax(polling.url);
+	ajax.onsuccess = Jocket.Polling.doEmitSuccess;
+	ajax.onfailure = Jocket.Polling.doEmitFailure;
 	ajax.submit(message);
 };
 
-jio.Polling.doSuccess = function(packet)
+Jocket.Polling.doSuccess = function(packet)
 {
 	console.log("[Jocket] Packet received: transport=polling, data=%o", packet);
 	var polling = this.polling;
 	var socket = polling.socket;
 	polling.ajax = null;
-	if (packet.type == jio.PACKET_TYPE_CLOSE) {
+	if (packet.type == Jocket.PACKET_TYPE_CLOSE) {
 		socket._transport = null;
-		socket._fire(jio.EVENT_CLOSE, JSON.parse(packet.data));
+		socket._fire(Jocket.EVENT_CLOSE, JSON.parse(packet.data));
 		return;
 	}
 	polling.poll();
-	if (packet.type != jio.PACKET_TYPE_TIMEOUT) {
+	if (packet.type != Jocket.PACKET_TYPE_TIMEOUT) {
 		socket._fire(packet.name, JSON.parse(packet.data));
 	}
 };
 
-jio.Polling.doFailure = function(event, status)
+Jocket.Polling.doFailure = function(event, status)
 {
 	var socket = this.polling.socket;
 	socket._transport = null; //TODO clear other content
-	socket._fire(jio.EVENT_CLOSE, {code:jio.CLOSE_ABNORMAL});
+	socket._fire(Jocket.EVENT_CLOSE, {code:Jocket.CLOSE_ABNORMAL});
 };
 
-jio.Polling.doEmitSuccess = function(response)
+Jocket.Polling.doEmitSuccess = function(response)
 {
 };
 
-jio.Polling.doEmitFailure = function(response)
+Jocket.Polling.doEmitFailure = function(response)
 {
 	//TODO
 	console.error("[Jocket] Message emit failed");
 };
 
 //-----------------------------------------------------------------------
-// jio.Ajax
+// Jocket.Ajax
 //-----------------------------------------------------------------------
 
-jio.Ajax = function(url)
+Jocket.Ajax = function(url)
 {
 	this.url		= url;
 	this.onsuccess	= null;
 	this.onfailure	= null;
-	this._status	= jio.Ajax.STATUS_NEW;
+	this._status	= Jocket.Ajax.STATUS_NEW;
 };
 
-jio.Ajax.STATUS_NEW		= 0;
-jio.Ajax.STATUS_SENDING = 1;
-jio.Ajax.STATUS_LOAD	= 2;
-jio.Ajax.STATUS_ERROR 	= 3;
-jio.Ajax.STATUS_ABORT 	= 4;
-jio.Ajax.STATUS_TIMEOUT	= 5;
+Jocket.Ajax.STATUS_NEW		= 0;
+Jocket.Ajax.STATUS_SENDING = 1;
+Jocket.Ajax.STATUS_LOAD	= 2;
+Jocket.Ajax.STATUS_ERROR 	= 3;
+Jocket.Ajax.STATUS_ABORT 	= 4;
+Jocket.Ajax.STATUS_TIMEOUT	= 5;
 
-jio.Ajax.doLoad = function(event)
+Jocket.Ajax.doLoad = function(event)
 {
-	event.target._ajax._finish(event, jio.Ajax.STATUS_LOAD);
+	event.target._ajax._finish(event, Jocket.Ajax.STATUS_LOAD);
 };
 
-jio.Ajax.doError = function(event)
+Jocket.Ajax.doError = function(event)
 {
-	event.target._ajax._finish(event, jio.Ajax.STATUS_ERROR);
+	event.target._ajax._finish(event, Jocket.Ajax.STATUS_ERROR);
 };
 
-jio.Ajax.doAbort = function(event)
+Jocket.Ajax.doAbort = function(event)
 {
-	event.target._ajax._finish(event, jio.Ajax.STATUS_ABORT);
+	event.target._ajax._finish(event, Jocket.Ajax.STATUS_ABORT);
 };
 
-jio.Ajax.doTimeout = function(event)
+Jocket.Ajax.doTimeout = function(event)
 {
-	event.target._ajax._finish(event, jio.Ajax.STATUS_TIMEOUT);
+	event.target._ajax._finish(event, Jocket.Ajax.STATUS_TIMEOUT);
 };
 
-jio.Ajax.doLoadEnd = function(event)
+Jocket.Ajax.doLoadEnd = function(event)
 {
 	event.target._ajax._cleanup();
 };
 
-jio.Ajax._parseXmlHttpRequestResponse = function(xhr, status)
+Jocket.Ajax._parseXmlHttpRequestResponse = function(xhr, status)
 {
 	var ajax = xhr._ajax; 
 	var result = {success:false, httpStatus:xhr.status};
@@ -329,13 +319,13 @@ jio.Ajax._parseXmlHttpRequestResponse = function(xhr, status)
 			console.error("[Jocket] Invalid JSON format. url=%s, response=%s", ajax.url, text);
 		}
 	}
-	else if (status != jio.Ajax.STATUS_ABORT) {
+	else if (status != Jocket.Ajax.STATUS_ABORT) {
 		console.error("[Jocket] AJAX failed. url=%s, status=%d, http status=%d", ajax.url, status, xhr.status);
 	}
 	return result;
 };
 
-jio.Ajax.prototype = 
+Jocket.Ajax.prototype = 
 {
 	submit: function(data)
 	{
@@ -343,10 +333,10 @@ jio.Ajax.prototype =
 		var xhr 		= new XMLHttpRequest();
 		ajax._xhr		= xhr;
 		xhr._ajax		= ajax;
-		xhr.onload 		= jio.Ajax.doLoad;
-		xhr.onerror 	= jio.Ajax.doError;
-		xhr.onabort 	= jio.Ajax.doAbort;
-		xhr.ontimeout	= jio.Ajax.doTimeout;
+		xhr.onload 		= Jocket.Ajax.doLoad;
+		xhr.onerror 	= Jocket.Ajax.doError;
+		xhr.onabort 	= Jocket.Ajax.doAbort;
+		xhr.ontimeout	= Jocket.Ajax.doTimeout;
 		var url 		= ajax.url;
 		if (ajax.cache != true) {
 			url += (url.indexOf("?") == -1 ? "?" : "&") + "jocket_rnd=" + new Date().getTime() + Math.random();
@@ -362,7 +352,7 @@ jio.Ajax.prototype =
 		else {
 			xhr.send(JSON.stringify(data));
 		}
-		ajax._status = jio.Ajax.STATUS_SENDING;
+		ajax._status = Jocket.Ajax.STATUS_SENDING;
 	},
 
 	abort: function()
@@ -373,22 +363,22 @@ jio.Ajax.prototype =
 	
 	isLoad: function()
 	{
-		return this._status == jio.Ajax.STATUS_LOAD;
+		return this._status == Jocket.Ajax.STATUS_LOAD;
 	},
 
 	isError: function()
 	{
-		return this._status == jio.Ajax.STATUS_ERROR;
+		return this._status == Jocket.Ajax.STATUS_ERROR;
 	},
 
 	isAbort: function()
 	{
-		return this._status == jio.Ajax.STATUS_ABORT;
+		return this._status == Jocket.Ajax.STATUS_ABORT;
 	},
 
 	isTimeout: function()
 	{
-		return this._status == jio.Ajax.STATUS_TIMEOUT;
+		return this._status == Jocket.Ajax.STATUS_TIMEOUT;
 	},
 	
 	_finish: function(event, status)
@@ -396,7 +386,7 @@ jio.Ajax.prototype =
 		var ajax 		= this;
 		var xhr 		= ajax._xhr;
 		ajax._status	= status;
-		ajax.result 	= jio.Ajax._parseXmlHttpRequestResponse(xhr, status);
+		ajax.result 	= Jocket.Ajax._parseXmlHttpRequestResponse(xhr, status);
 		if (ajax.result != null && ajax.result.success) {
 			if (ajax.onsuccess != null) {
 				ajax.onsuccess(ajax.result.json);
@@ -417,11 +407,3 @@ jio.Ajax.prototype =
 		ajax._xhr	= null;
 	}
 };
-
-//-----------------------------------------------------------------------
-// initialization
-//-----------------------------------------------------------------------
-
-if (typeof io == "undefined") {
-	io = jio;
-}
