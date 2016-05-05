@@ -8,12 +8,12 @@ public abstract class JocketAbstractQueue implements JocketQueue
 	protected final Map<String, JocketSubscriber> subscribers = new HashMap<>();
 	
 	@Override
-	public void subscribe(JocketSubscriber subscriber, String connectionId)
+	public void subscribe(JocketSubscriber subscriber, String sessionId)
 	{
 		synchronized(subscribers) {
-			subscribers.put(connectionId, subscriber);
+			subscribers.put(sessionId, subscriber);
 		}
-		notifySubscriber(connectionId);
+		notifySubscriber(sessionId);
 	}
 
 	@Override
@@ -24,43 +24,43 @@ public abstract class JocketAbstractQueue implements JocketQueue
 		}
 	}
 
-	protected JocketSubscriber getSubscriber(String connectionId)
+	protected JocketSubscriber getSubscriber(String sessionId)
 	{
 		synchronized(subscribers) {
-			return subscribers.get(connectionId);
+			return subscribers.get(sessionId);
 		}
 	}
 
-	public void notifySubscriber(String connectionId)
+	public void notifySubscriber(String sessionId)
 	{
-		new Thread(new Consumer(this, connectionId)).start();
+		new Thread(new Consumer(this, sessionId)).start();
 	}
 	
-	protected abstract JocketEvent pollEvent(String connectionId);
+	protected abstract JocketEvent pollEvent(String sessionId);
 
 	protected static class Consumer implements Runnable
 	{
-		private JocketAbstractQueue impl;
+		private JocketAbstractQueue queue;
 		
-		private String connectionId;
+		private String sessionId;
 		
-		public Consumer(JocketAbstractQueue impl, String connectionId)
+		public Consumer(JocketAbstractQueue queue, String sessionId)
 		{
-			this.impl = impl;
-			this.connectionId = connectionId;
+			this.queue = queue;
+			this.sessionId = sessionId;
 		}
 
 		@Override
 		public void run()
 		{
-			JocketSubscriber subscriber = impl.getSubscriber(connectionId);
+			JocketSubscriber subscriber = queue.getSubscriber(sessionId);
 			if (subscriber != null) {
 				synchronized(subscriber) {
-					JocketEvent event = impl.pollEvent(connectionId);
+					JocketEvent event = queue.pollEvent(sessionId);
 					if (event != null) {
-						subscriber.onEvent(connectionId, event);
+						subscriber.onEvent(sessionId, event);
 						if (subscriber.isAutoNext()) {
-							impl.notifySubscriber(connectionId);
+							queue.notifySubscriber(sessionId);
 						}
 					}
 				}

@@ -3,7 +3,7 @@ package com.jeedsoft.jocket.storage.redis;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.jeedsoft.jocket.exception.JocketRuntimeException;
+import com.jeedsoft.jocket.util.JocketRuntimeException;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.util.Pool;

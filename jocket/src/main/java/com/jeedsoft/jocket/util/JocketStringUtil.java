@@ -3,7 +3,7 @@ package com.jeedsoft.jocket.util;
 import java.util.ArrayList;
 import java.util.List;
 
-public class StringUtil
+public class JocketStringUtil
 {
 	private static boolean[] regexSpecialChars = new boolean[127];
 	

@@ -1,4 +1,4 @@
-package com.jeedsoft.jocket.servlet;
+package com.jeedsoft.jocket.transport.polling;
 
 import java.io.IOException;
 
@@ -13,16 +13,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.jeedsoft.jocket.Jocket;
-import com.jeedsoft.jocket.connection.JocketConnection;
+import com.jeedsoft.jocket.connection.JocketCloseReason;
 import com.jeedsoft.jocket.connection.JocketConnectionManager;
-import com.jeedsoft.jocket.connection.JocketStub;
-import com.jeedsoft.jocket.connection.JocketStubManager;
-import com.jeedsoft.jocket.connection.impl.JocketPollingConnection;
-import com.jeedsoft.jocket.endpoint.JocketCloseReason;
+import com.jeedsoft.jocket.connection.JocketSession;
+import com.jeedsoft.jocket.connection.JocketSessionManager;
 import com.jeedsoft.jocket.endpoint.JocketEndpointRunner;
 import com.jeedsoft.jocket.event.JocketEvent;
-import com.jeedsoft.jocket.exception.JocketException;
-import com.jeedsoft.jocket.util.IoUtil;
+import com.jeedsoft.jocket.util.JocketException;
+import com.jeedsoft.jocket.util.JocketIoUtil;
 
 @WebServlet(urlPatterns="*.jocket_polling", name="JocketPollingServlet", asyncSupported=true)
 public class JocketPollingServlet extends HttpServlet
@@ -36,35 +34,36 @@ public class JocketPollingServlet extends HttpServlet
 	{
 		try {
 			String path = request.getServletPath().replaceFirst("\\.jocket_polling.*", "");
-			String cid = request.getParameter("jocket_cid");
-			
-			//get stub and check status
-			JocketStub stub = JocketStubManager.get(cid);
-			if (stub == null) {
+			String sessionId = request.getParameter("jocket_sid");
+			logger.trace("[Jocket] Polling start: sid={}, path={}", sessionId, path);
+
+			//get session and check status
+			JocketSession session = JocketSessionManager.get(sessionId);
+			if (session == null) {
 				int code = JocketCloseReason.CLOSED_ABNORMALLY;
-				JocketCloseReason reason = new JocketCloseReason(code, "connection id not found");
+				JocketCloseReason reason = new JocketCloseReason(code, "session not found");
 				JocketEvent event = new JocketEvent(JocketEvent.TYPE_CLOSE, null, reason);
-				IoUtil.write(response, event.toJsonString());
+				JocketIoUtil.write(response, event.toJsonString());
 				return;
 			}
-			String status = stub.getStatus();
-			boolean isFirstPolling = JocketStub.STATUS_PREPARED.equals(status);
-			boolean isReconnecting = JocketStub.STATUS_RECONNECTING.equals(status);
+			String status = session.getStatus();
+			boolean isFirstPolling = JocketSession.STATUS_PREPARED.equals(status);
+			boolean isReconnecting = JocketSession.STATUS_RECONNECTING.equals(status);
 			if (!isFirstPolling && !isReconnecting) {
-				throw new JocketException("Jocket status invalid: cid=" + cid + ", status=" + status);
+				logger.error("[Jocket] status invalid for new polling: sid={}, status={}", sessionId, status);
+				throw new JocketException("Jocket status invalid: sid=" + sessionId + ", status=" + status);
 			}
-			logger.trace("[Jocket] Polling start: cid={}, path={}", cid, path);
 			
 			//start the async context
 	        AsyncContext context = request.startAsync();
-			JocketPollingConnection cn = new JocketPollingConnection(stub, context);
+			JocketPollingConnection cn = new JocketPollingConnection(session, context);
 	        context.addListener(new JocketPollingAsyncListener(cn));
 	        context.setTimeout(JocketPollingConnection.POLLING_INTERVAL);
-	        stub.setLastHeartbeatTime(System.currentTimeMillis());
+	        session.setLastHeartbeatTime(System.currentTimeMillis());
 	        JocketConnectionManager.add(cn);
 			if (isFirstPolling) {
-				JocketEndpointRunner.doOpen(cn);
-				logger.debug("[Jocket] Jocket opened: transport=long-polling, cid={}, path={}", cid, path);
+				JocketEndpointRunner.doOpen(session);
+				logger.debug("[Jocket] Jocket opened: transport=long-polling, sid={}, path={}", sessionId, path);
 			}
 		}
 		catch (JocketException e) {
@@ -76,24 +75,20 @@ public class JocketPollingServlet extends HttpServlet
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
 	{
 		try {
-			String cid = request.getParameter("jocket_cid");
-	        JocketConnection cn = JocketConnectionManager.get(cid);
-	        if (cn == null) {
-				JocketStub stub = JocketStubManager.get(cid);
-				if (stub == null) {
-					throw new JocketException("Jocket connection id not found: " + cid);
-				}
-		        cn = new JocketPollingConnection(stub);
-	        }
-			String requestText = IoUtil.readText(request);
+			String sessionId = request.getParameter("jocket_sid");
+			JocketSession session = JocketSessionManager.get(sessionId);
+			if (session == null) {
+				throw new JocketException("Jocket session not found: id=" + sessionId);
+			}
+			String requestText = JocketIoUtil.readText(request);
 			JocketEvent event = JocketEvent.parse(requestText);
 			if (event.getType() == JocketEvent.TYPE_CLOSE) {
-				Jocket.close(cid, JocketCloseReason.NORMAL, "Jocket connection closed by user");
+				Jocket.close(sessionId, JocketCloseReason.NORMAL, "Jocket session closed by user");
 			}
 			else {
-				JocketEndpointRunner.doMessage(cn, event);
+				JocketEndpointRunner.doMessage(session, event);
 			}
-			IoUtil.write(response, "{}");
+			JocketIoUtil.write(response, "{}");
 		}
 		catch (JocketException e) {
 			throw new ServletException(e);
@@ -102,32 +97,29 @@ public class JocketPollingServlet extends HttpServlet
 	
 	public static void downstream(JocketPollingConnection cn, JocketEvent event) throws IOException
 	{
-		String cid = cn.getId();
-		if (logger.isTraceEnabled()) {
-			logger.trace("[Jocket] Polling finished: cid={}, content={}", cid, event);
-		}
+		String sessionId = cn.getSessionId();
+		logger.trace("[Jocket] Polling finished: sid={}, content={}", sessionId, event);
 		boolean executed = false;
 		//the following code must be synchronized to avoid concurrent write
 		synchronized (cn) {
 			AsyncContext context = cn.getPollingContext();
 			if (context != null) {
 				try {
+			        JocketConnectionManager.remove(sessionId); //connection must be removed before write response
 			        HttpServletResponse response = (HttpServletResponse)context.getResponse();
-			        IoUtil.write(response, event.toJsonString());
+			        JocketIoUtil.write(response, event.toJsonString());
 			        context.complete();
 				}
 				finally {
-			        JocketConnectionManager.remove(cid);
 			        cn.setPollingContext(null);
 			        executed = true;
 				}
 			}
 		}
 		if (executed && event.getType() == JocketEvent.TYPE_CLOSE) {
-			JocketStub stub = JocketStubManager.remove(cid);
-			if (stub != null) {
-				cn.setStub(stub);
-				JocketEndpointRunner.doClose(cn, JocketCloseReason.parse(event.getData()));
+			JocketSession session = JocketSessionManager.remove(sessionId);
+			if (session != null) {
+				JocketEndpointRunner.doClose(session, JocketCloseReason.parse(event.getData()));
 			}
 		}
 	}

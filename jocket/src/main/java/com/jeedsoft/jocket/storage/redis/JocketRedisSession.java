@@ -3,18 +3,18 @@ package com.jeedsoft.jocket.storage.redis;
 import java.util.Map;
 
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.jeedsoft.jocket.connection.JocketStub;
-import com.jeedsoft.jocket.connection.JocketStubManager;
+import com.jeedsoft.jocket.connection.JocketSession;
+import com.jeedsoft.jocket.connection.JocketSessionManager;
 import com.jeedsoft.jocket.util.JocketJsonUtil;
 
-public class JocketRedisStub extends JocketStub
+public class JocketRedisSession extends JocketSession
 {
-	private JocketRedisStubStore store = (JocketRedisStubStore)JocketStubManager.getStore();
-	
-	public JocketRedisStub()
-	{
-	}
+	private static final Logger logger = LoggerFactory.getLogger(JocketRedisSession.class);
+
+	private JocketRedisSessionStore store = (JocketRedisSessionStore)JocketSessionManager.getStore();
 
 	@Override
 	public String getTransport()
@@ -37,6 +37,7 @@ public class JocketRedisStub extends JocketStub
 	@Override
 	public void setStatus(String status)
 	{
+		logger.trace("[Jocket] set session status: sid={}, status={}", id, status);
 		store.setBaseData(id, KEY_STATUS, status);
 	}
 
@@ -88,14 +89,14 @@ public class JocketRedisStub extends JocketStub
 		store.setAttribute(id, key, value);
 	}
 	
-	public static JocketRedisStub fromMap(Map<String, String> map)
+	public static JocketRedisSession fromMap(Map<String, String> map)
 	{
-		JocketRedisStub stub = new JocketRedisStub();
-		stub.setId(map.get(KEY_ID));
-		stub.setEndpointClassName(map.get(KEY_ENDPOINT_CLASS_NAME));
-		stub.setHttpSessionId(map.get(KEY_HTTP_SESSION_ID));
-		stub.setParameters(JocketJsonUtil.toStringMap(new JSONObject(map.get(KEY_PARAMETERS))));
-		stub.setStartTime(Long.parseLong(map.get(KEY_START_TIME)));
-		return stub;
+		JocketRedisSession session = new JocketRedisSession();
+		session.setId(map.get(KEY_ID));
+		session.setEndpointClassName(map.get(KEY_ENDPOINT_CLASS_NAME));
+		session.setHttpSessionId(map.get(KEY_HTTP_SESSION_ID));
+		session.setParameters(JocketJsonUtil.toStringMap(new JSONObject(map.get(KEY_PARAMETERS))));
+		session.setStartTime(Long.parseLong(map.get(KEY_START_TIME)));
+		return session;
 	}
 }

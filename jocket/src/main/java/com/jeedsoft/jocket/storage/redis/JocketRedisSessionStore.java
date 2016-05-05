@@ -5,48 +5,48 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.jeedsoft.jocket.connection.JocketStub;
-import com.jeedsoft.jocket.connection.JocketStubStore;
+import com.jeedsoft.jocket.connection.JocketSession;
+import com.jeedsoft.jocket.connection.JocketSessionStore;
 
-public class JocketRedisStubStore implements JocketStubStore
+public class JocketRedisSessionStore implements JocketSessionStore
 {
 	private long scheduleSerial = 0;
 
 	@Override
-	public void add(JocketStub stub)
+	public void add(JocketSession session)
 	{
-		String key = getBaseKey(stub.getId());
-		JocketRedisExecutor.hmset(key, stub.toMap());
+		String key = getBaseKey(session.getId());
+		JocketRedisExecutor.hmset(key, session.toMap());
 	}
 
 	@Override
-	public JocketStub remove(String id)
+	public JocketSession remove(String id)
 	{
 		String baseKey = getBaseKey(id);
 		String attrKey = getAttrKey(id);
 		Map<String, String> baseData = JocketRedisExecutor.hgetAll(baseKey);
 		Map<String, String> attrData = JocketRedisExecutor.hgetAll(attrKey);
-		JocketStub stub = null;
+		JocketSession session = null;
 		if (!baseData.isEmpty()) {
 			Map<String, Object> attributes = new HashMap<>();
 			for (String k: attrData.keySet()) {
 				Object v = JocketRedisObjectNotation.toObject(attrData.get(k));
 				attributes.put(k, v);
 			}
-			stub = new JocketStub(baseData, attributes);
+			session = new JocketSession(baseData, attributes);
 		}
 		if (!baseData.isEmpty() || !attrData.isEmpty()) {
 			JocketRedisExecutor.del(baseKey, attrKey);
 		}
-		return stub;
+		return session;
 	}
 
 	@Override
-	public JocketStub get(String id)
+	public JocketSession get(String id)
 	{
 		String key = getBaseKey(id);
 		Map<String, String> map = JocketRedisExecutor.hgetAll(key);
-		return JocketRedisStub.fromMap(map);
+		return JocketRedisSession.fromMap(map);
 	}
 
 	@Override
@@ -60,23 +60,23 @@ public class JocketRedisStubStore implements JocketStubStore
 	}
 
 	@Override
-	public synchronized List<JocketStub> checkStore()
+	public synchronized List<JocketSession> checkStore()
 	{
-		List<JocketStub> brokenStubs = new ArrayList<>();
+		List<JocketSession> brokenSessions = new ArrayList<>();
 		String pattern = getBaseKeyPattern();
 		for (String key: JocketRedisExecutor.keys(pattern)) {
 			Map<String, String> map = JocketRedisExecutor.hgetAll(key);
 			if (!map.isEmpty()) {
-				JocketStub stub = JocketRedisStub.fromMap(map);
-				if (stub.isBroken()) {
-					JocketStub localStub = remove(stub.getId());
-					if (localStub != null) {
-						brokenStubs.add(localStub);
+				JocketSession session = JocketRedisSession.fromMap(map);
+				if (session.isBroken()) {
+					JocketSession localSession = remove(session.getId());
+					if (localSession != null) {
+						brokenSessions.add(localSession);
 					}
 				}
 			}
 		}
-		return brokenStubs;
+		return brokenSessions;
 	}
 
 	@Override
@@ -138,16 +138,16 @@ public class JocketRedisStubStore implements JocketStubStore
 
 	private String getBaseKey(String id)
 	{
-		return JocketRedisKey.PREFIX_STUB + ":" + id + ":" + JocketRedisKey.POSTFIX_BASE;
+		return JocketRedisKey.PREFIX_SESSION + ":" + id + ":" + JocketRedisKey.POSTFIX_BASE;
 	}
 
 	private String getAttrKey(String id)
 	{
-		return JocketRedisKey.PREFIX_STUB + ":" + id + ":" + JocketRedisKey.POSTFIX_ATTR;
+		return JocketRedisKey.PREFIX_SESSION + ":" + id + ":" + JocketRedisKey.POSTFIX_ATTR;
 	}
 	
 	private String getBaseKeyPattern()
 	{
-		return JocketRedisKey.PREFIX_STUB + ":*:" + JocketRedisKey.POSTFIX_BASE;
+		return JocketRedisKey.PREFIX_SESSION + ":*:" + JocketRedisKey.POSTFIX_BASE;
 	}
 }

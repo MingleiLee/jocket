@@ -7,7 +7,7 @@ import java.io.PrintWriter;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-public class IoUtil
+public class JocketIoUtil
 {
 	public static String readText(HttpServletRequest request) throws IOException
 	{

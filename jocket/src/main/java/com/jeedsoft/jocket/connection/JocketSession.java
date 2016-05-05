@@ -9,13 +9,17 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.jeedsoft.jocket.connection.impl.JocketPollingConnection;
-import com.jeedsoft.jocket.connection.impl.JocketWebSocketConnection;
+import com.jeedsoft.jocket.endpoint.JocketAbstractEndpoint;
+import com.jeedsoft.jocket.endpoint.JocketDeployer;
+import com.jeedsoft.jocket.event.JocketEvent;
+import com.jeedsoft.jocket.event.JocketQueueManager;
+import com.jeedsoft.jocket.transport.polling.JocketPollingConnection;
+import com.jeedsoft.jocket.transport.websocket.JocketWebSocketConnection;
 import com.jeedsoft.jocket.util.JocketJsonUtil;
 
-public class JocketStub
+public class JocketSession
 {
-	private static final Logger logger = LoggerFactory.getLogger(JocketStub.class);
+	private static final Logger logger = LoggerFactory.getLogger(JocketSession.class);
 
 	public static final String STATUS_PREPARED		= "prepared";
 	public static final String STATUS_CONNECTED		= "connected";
@@ -57,11 +61,11 @@ public class JocketStub
 
 	private Map<String, Object> attributes = new HashMap<>();
 
-	public JocketStub()
+	public JocketSession()
 	{
 	}
 
-	public JocketStub(Map<String, String> baseData, Map<String, Object> attributes)
+	public JocketSession(Map<String, String> baseData, Map<String, Object> attributes)
 	{
 		this.id = baseData.get(KEY_ID);
 		this.endpointClassName = baseData.get(KEY_ENDPOINT_CLASS_NAME);
@@ -88,9 +92,9 @@ public class JocketStub
 		this.id = id;
 	}
 
-	public String getEndpointClassName()
+	public Class<? extends JocketAbstractEndpoint> getEndpointClass()
 	{
-		return endpointClassName;
+		return JocketDeployer.getEndpointClass(endpointClassName);
 	}
 
 	public void setEndpointClassName(String endpointClassName)
@@ -197,6 +201,17 @@ public class JocketStub
 	protected void setAttributes(Map<String, Object> attributes)
 	{
 		this.attributes = attributes;
+	}
+
+	public void emit(String eventName, Object data)
+	{
+		JocketEvent event = new JocketEvent(JocketEvent.TYPE_NORMAL, eventName, data);
+		JocketQueueManager.publish(id, event);
+	}
+
+	public void send(Object data)
+	{
+		emit("message", data);
 	}
 
 	public Map<String, String> toMap()

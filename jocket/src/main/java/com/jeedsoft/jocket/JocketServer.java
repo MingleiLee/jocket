@@ -1,19 +1,20 @@
 package com.jeedsoft.jocket;
 
 import com.jeedsoft.jocket.connection.JocketConnectionManager;
-import com.jeedsoft.jocket.connection.JocketStubManager;
-import com.jeedsoft.jocket.connection.JocketStubStore;
+import com.jeedsoft.jocket.connection.JocketSessionManager;
+import com.jeedsoft.jocket.connection.JocketSessionStore;
 import com.jeedsoft.jocket.endpoint.JocketDeployer;
 import com.jeedsoft.jocket.event.JocketQueue;
 import com.jeedsoft.jocket.event.JocketQueueManager;
-import com.jeedsoft.jocket.listener.JocketCleaner;
+import com.jeedsoft.jocket.storage.JocketCleaner;
 
 public class JocketServer
 {
 	private static boolean isRunning = false;
 
 	/**
-	 * 
+	 * Start the Jocket service
+	 * This method should be called in ServletContextListener.contextInitialized()
 	 */
 	public static void start()
 	{
@@ -24,7 +25,7 @@ public class JocketServer
 	
 	/**
 	 * Free the resources
-	 * This method should only be invoked in ServletContextListener.contextDestroyed()
+	 * This method should be called in ServletContextListener.contextDestroyed()
 	 */
 	public static void stop()
 	{
@@ -35,9 +36,9 @@ public class JocketServer
 		JocketConnectionManager.clear();
 	}
 	
-	public static void setStubStore(JocketStubStore store)
+	public static void setSessionStore(JocketSessionStore store)
 	{
-		JocketStubManager.setStore(store);
+		JocketSessionManager.setStore(store);
 	}
 	
 	public static void setEventQueue(JocketQueue queue)

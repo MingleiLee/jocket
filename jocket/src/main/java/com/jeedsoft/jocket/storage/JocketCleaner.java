@@ -1,4 +1,4 @@
-package com.jeedsoft.jocket.listener;
+package com.jeedsoft.jocket.storage;
 
 import java.util.List;
 import java.util.Timer;
@@ -7,11 +7,10 @@ import java.util.TimerTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.jeedsoft.jocket.connection.JocketCloseReason;
 import com.jeedsoft.jocket.connection.JocketConnectionManager;
-import com.jeedsoft.jocket.connection.JocketStub;
-import com.jeedsoft.jocket.connection.JocketStubManager;
-import com.jeedsoft.jocket.connection.impl.JocketPollingConnection;
-import com.jeedsoft.jocket.endpoint.JocketCloseReason;
+import com.jeedsoft.jocket.connection.JocketSession;
+import com.jeedsoft.jocket.connection.JocketSessionManager;
 import com.jeedsoft.jocket.endpoint.JocketEndpointRunner;
 import com.jeedsoft.jocket.event.JocketQueueManager;
 
@@ -45,27 +44,27 @@ public class JocketCleaner
 		@Override
 		public void run()
 		{
-			if (!JocketStubManager.applySchedule()) {
+			if (!JocketSessionManager.applySchedule()) {
 				return;
 			}
-			List<JocketStub> corruptedStubs = JocketStubManager.checkCorruption();
-			for (JocketStub stub: corruptedStubs) {
-				JocketQueueManager.unsubscribe(stub.getId(), true);
+			List<JocketSession> brokenSessions = JocketSessionManager.checkStore();
+			for (JocketSession session: brokenSessions) {
+				JocketQueueManager.unsubscribe(session.getId(), true);
 				int code = JocketCloseReason.CLOSED_ABNORMALLY;
 				JocketCloseReason reason = new JocketCloseReason(code, "no new polling");
-				JocketEndpointRunner.doClose(new JocketPollingConnection(stub), reason);
+				JocketEndpointRunner.doClose(session, reason);
 			}
 			if (logger.isDebugEnabled()) {
-				if (!corruptedStubs.isEmpty()) {
-					logger.debug("[Jocket] Removed {} corrupted connections.", corruptedStubs.size());
+				if (!brokenSessions.isEmpty()) {
+					logger.debug("[Jocket] Removed {} corrupted sessions.", brokenSessions.size());
 				}
 				Object[] args = {
-					JocketStubManager.size(),
+					JocketSessionManager.size(),
 					JocketQueueManager.getSubscriberCount(),
 					JocketQueueManager.getQueueCount(),
 					JocketConnectionManager.size()
 				};
-				logger.debug("[Jocket] Statistics: stub={}, subscriber={}, queue={}, local connection={}", args);
+				logger.debug("[Jocket] Statistics: session={}, queue={}, local connection={}, local subscriber={}", args);
 			}
 		}
 	}

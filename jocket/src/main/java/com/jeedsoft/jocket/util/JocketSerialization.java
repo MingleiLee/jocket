@@ -6,8 +6,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
-import com.jeedsoft.jocket.exception.JocketRuntimeException;
-
 public class JocketSerialization
 {
 	public static byte[] serialize(Object object)

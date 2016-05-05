@@ -1,4 +1,4 @@
-package com.jeedsoft.jocket.connection.impl;
+package com.jeedsoft.jocket.transport.websocket;
 
 import java.io.IOException;
 
@@ -8,9 +8,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.jeedsoft.jocket.connection.JocketConnection;
-import com.jeedsoft.jocket.connection.JocketStub;
+import com.jeedsoft.jocket.connection.JocketSession;
 import com.jeedsoft.jocket.event.JocketEvent;
-import com.jeedsoft.jocket.websocket.JocketWebSocketEndpoint;
 
 public class JocketWebSocketConnection extends JocketConnection
 {
@@ -18,32 +17,32 @@ public class JocketWebSocketConnection extends JocketConnection
 	
 	public static final long HEARTBEAT_INTERVAL = 60_000;
 
-	private Session session;
+	private Session wsSession;
 
-	public JocketWebSocketConnection(JocketStub stub, Session session)
+	public JocketWebSocketConnection(JocketSession session, Session wsSession)
 	{
-		super(stub);
-		this.session = session;
+		super(session);
+		this.wsSession = wsSession;
 	}
 
 	public Session getWebSocketSession()
 	{
-		return session;
+		return wsSession;
 	}
 
-	public void setWebSocketSession(Session session)
+	public void setWebSocketSession(Session wsSession)
 	{
-		this.session = session;
+		this.wsSession = wsSession;
 	}
 
 	@Override
-	public void onEvent(String connectionId, JocketEvent event)
+	public void onEvent(String sessionId, JocketEvent event)
 	{
 		try {
-			JocketWebSocketEndpoint.downstream(session, event);
+			JocketWebSocketEndpoint.downstream(wsSession, event);
 		}
 		catch (IOException e) {
-			logger.error("[Jocket] Failed to send message: cid={}, event={}", connectionId, event);
+			logger.error("[Jocket] Failed to send message: sid={}, event={}", sessionId, event);
 		}
 	}
 

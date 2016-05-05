@@ -17,7 +17,7 @@ var Jocket = function(url, options)
 	this._transports = [];
 	for (var i = 0, list = this.options.transports || ["websocket", "polling"]; i < list.length; ++i) {
 		var t = list[i];
-		if (Jocket.impls[t] == null) {
+		if (Jocket._transportClasses[t] == null) {
 			throw "Invalid transport: " + t;
 		}
 		if (t != "websocket" || window.WebSocket != null) {
@@ -36,11 +36,11 @@ var Jocket = function(url, options)
 
 Jocket.prototype.emit = function(eventName, data)
 {
-	var socket = this;
-	if (socket._transport == null) {
+	var jocket = this;
+	if (jocket._transport == null) {
 		return false;
 	}
-	socket._transport.emit({name:eventName, data:JSON.stringify(data)});
+	jocket._transport.emit({name:eventName, data:JSON.stringify(data)});
 	return true;
 };
 
@@ -51,21 +51,21 @@ Jocket.prototype.send = function(data)
 
 Jocket.prototype.open = function()
 {
-	var socket = this;
+	var jocket = this;
 	var ajax = new Jocket.Ajax();
-	ajax.url = socket.url.replace(/\?.*/, "") + ".jocket_prepare" + socket.url.replace(/[^\?]+/, "");
+	ajax.url = jocket.url.replace(/\?.*/, "") + ".jocket_prepare" + jocket.url.replace(/[^\?]+/, "");
 	ajax.onsuccess = Jocket.doPrepareSuccess;
 	ajax.onfailure = Jocket.doPrepareFailure;
-	ajax.socket = socket;
+	ajax.jocket = jocket;
 	ajax.submit();
 };
 
 Jocket.prototype.close = function(eventName, data)
 {
-	var socket = this;
-	if (socket._transport != null) {
-		socket._transport.close();
-		socket._transport = null;
+	var jocket = this;
+	if (jocket._transport != null) {
+		jocket._transport.close();
+		jocket._transport = null;
 	}
 };
 
@@ -76,29 +76,30 @@ Jocket.prototype.isOpen = function()
 
 Jocket.prototype.on = function(eventName, listener)
 {
-	var socket = this;
-	socket._listeners[eventName] = socket._listeners[eventName] || [];
-	socket._listeners[eventName].push(listener);
-	return socket;
+	var jocket = this;
+	jocket._listeners[eventName] = jocket._listeners[eventName] || [];
+	jocket._listeners[eventName].push(listener);
+	return jocket;
 };
 
 Jocket.prototype._fire = function(eventName, eventData)
 {
-	var socket = this;
-	var listeners = socket._listeners[eventName];
-	if (eventName in socket._listeners) {
-		var listeners = socket._listeners[eventName].slice(0);
+	var jocket = this;
+	var listeners = jocket._listeners[eventName];
+	if (eventName in jocket._listeners) {
+		var listeners = jocket._listeners[eventName].slice(0);
 		for (var i = 0; i < listeners.length; ++i) {
-			listeners[i].call(socket, eventData);
+			listeners[i].call(jocket, eventData);
 		}
 	}
 };
 
 Jocket.doPrepareSuccess = function(response)
 {
-	var socket = this.socket;
-	socket.connectionId = response.connectionId;
-	socket._transport = new Jocket.impls[socket._transports[0]](socket); //TODO try next if failed
+	var jocket = this.jocket;
+	var transportClass = Jocket._transportClasses[jocket._transports[0]];
+	jocket.sessionId = response.sessionId;
+	jocket._transport = new transportClass(jocket); //TODO try next if failed
 };
 
 Jocket.doPrepareFailure = function(response)
@@ -107,7 +108,7 @@ Jocket.doPrepareFailure = function(response)
 	console.error("[Jocket] Jocket prepare failed");
 };
 
-Jocket.impls = {};
+Jocket._transportClasses = {};
 
 Jocket.PACKET_TYPE_CLOSE	= 1,
 Jocket.PACKET_TYPE_TIMEOUT	= 2,
@@ -120,13 +121,13 @@ Jocket.EVENT_OPEN			= "open",
 Jocket.EVENT_CLOSE			= "close",
 
 //-----------------------------------------------------------------------
-// Jocket.WebSocket
+// Jocket.Ws
 //-----------------------------------------------------------------------
 
-Jocket.Ws = Jocket.impls["websocket"] = function(socket)
+Jocket.Ws = Jocket._transportClasses["websocket"] = function(jocket)
 {
-	this.socket = socket;
-	this.url = socket.url.replace(/^http/, "ws").replace(/\?.*/, "") + "?jocket_cid=" + socket.connectionId;
+	this.jocket = jocket;
+	this.url = jocket.url.replace(/^http/, "ws").replace(/\?.*/, "") + "?jocket_sid=" + jocket.sessionId;
 	this.open();
 };
 
@@ -154,15 +155,15 @@ Jocket.Ws.prototype.emit = function(message)
 Jocket.Ws.doWebSocketOpen = function()
 {
 	var ws = this.ws;
-	ws.socket._fire(Jocket.EVENT_OPEN);
+	ws.jocket._fire(Jocket.EVENT_OPEN);
 };
 
 Jocket.Ws.doWebSocketClose = function(event)
 {
 	var ws = this.ws;
-	ws.socket._transport = null;
-	ws.socket._fire(Jocket.EVENT_CLOSE, {code:event.code, description:event.reason});
-	ws.socket = null;
+	ws.jocket._transport = null;
+	ws.jocket._fire(Jocket.EVENT_CLOSE, {code:event.code, description:event.reason});
+	ws.jocket = null;
 	ws.webSocket.ws = null;
 	ws.webSocket = null;
 };
@@ -178,19 +179,19 @@ Jocket.Ws.doWebSocketMessage = function(event)
 	var ws = this.ws;
 	var packet = JSON.parse(event.data);
 	console.log("[Jocket] Packet received: transport=websocket, packet=%o", packet);
-	ws.socket._fire(packet.name, JSON.parse(packet.data));
+	ws.jocket._fire(packet.name, JSON.parse(packet.data));
 };
 
 //-----------------------------------------------------------------------
 // Jocket.Polling
 //-----------------------------------------------------------------------
 
-Jocket.Polling = Jocket.impls["polling"] = function(socket)
+Jocket.Polling = Jocket._transportClasses["polling"] = function(jocket)
 {
-	this.socket = socket;
-	this.url = socket.url.replace(/\?.*/, "") + ".jocket_polling?jocket_cid=" + socket.connectionId;
+	this.jocket = jocket;
+	this.url = jocket.url.replace(/\?.*/, "") + ".jocket_polling?jocket_sid=" + jocket.sessionId;
 	this.poll();
-	socket._fire(Jocket.EVENT_OPEN);
+	jocket._fire(Jocket.EVENT_OPEN);
 };
 
 Jocket.Polling.prototype.poll = function()
@@ -208,14 +209,14 @@ Jocket.Polling.prototype.poll = function()
 Jocket.Polling.prototype.close = function()
 {
 	var polling = this;
-	var socket = polling.socket;
+	var jocket = polling.jocket;
 	if (polling.ajax != null) {
 		polling.ajax.abort();
 		polling.ajax = null;
 	}
 	var ajax = new Jocket.Ajax(polling.url);
 	ajax.submit({type:Jocket.PACKET_TYPE_CLOSE});
-	socket._fire(Jocket.EVENT_CLOSE, {code:Jocket.CLOSE_NORMAL});
+	jocket._fire(Jocket.EVENT_CLOSE, {code:Jocket.CLOSE_NORMAL});
 };
 
 Jocket.Polling.prototype.emit = function(message)
@@ -231,24 +232,24 @@ Jocket.Polling.doSuccess = function(packet)
 {
 	console.log("[Jocket] Packet received: transport=polling, data=%o", packet);
 	var polling = this.polling;
-	var socket = polling.socket;
+	var jocket = polling.jocket;
 	polling.ajax = null;
 	if (packet.type == Jocket.PACKET_TYPE_CLOSE) {
-		socket._transport = null;
-		socket._fire(Jocket.EVENT_CLOSE, JSON.parse(packet.data));
+		jocket._transport = null;
+		jocket._fire(Jocket.EVENT_CLOSE, JSON.parse(packet.data));
 		return;
 	}
 	polling.poll();
 	if (packet.type != Jocket.PACKET_TYPE_TIMEOUT) {
-		socket._fire(packet.name, JSON.parse(packet.data));
+		jocket._fire(packet.name, JSON.parse(packet.data));
 	}
 };
 
 Jocket.Polling.doFailure = function(event, status)
 {
-	var socket = this.polling.socket;
-	socket._transport = null; //TODO clear other content
-	socket._fire(Jocket.EVENT_CLOSE, {code:Jocket.CLOSE_ABNORMAL});
+	var jocket = this.polling.jocket;
+	jocket._transport = null; //TODO clear other content
+	jocket._fire(Jocket.EVENT_CLOSE, {code:Jocket.CLOSE_ABNORMAL});
 };
 
 Jocket.Polling.doEmitSuccess = function(response)

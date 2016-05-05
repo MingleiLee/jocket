@@ -1,4 +1,4 @@
-package com.jeedsoft.jocket.servlet;
+package com.jeedsoft.jocket.transport;
 
 import java.io.IOException;
 
@@ -15,7 +15,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.jeedsoft.jocket.util.StringUtil;
+import com.jeedsoft.jocket.util.JocketStringUtil;
 
 @WebFilter(servletNames={"JocketPollingServlet", "JocketPrepareServlet"}, asyncSupported=true)
 public final class JocketCorsFilter implements Filter
@@ -51,7 +51,7 @@ public final class JocketCorsFilter implements Filter
 		response.setHeader("Cache-Control", "no-store, no-cache");
 		
 		String origin = request.getHeader(REQUEST_HEADER_ORIGIN);
-		if (StringUtil.isEmpty(origin)) {
+		if (JocketStringUtil.isEmpty(origin)) {
 			chain.doFilter(request, response);
 			return;
 		}

@@ -14,10 +14,9 @@ import javax.websocket.server.ServerEndpointConfig.Builder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.jeedsoft.jocket.exception.JocketException;
-import com.jeedsoft.jocket.exception.JocketRuntimeException;
-import com.jeedsoft.jocket.util.StringUtil;
-import com.jeedsoft.jocket.websocket.JocketWebSocketEndpoint;
+import com.jeedsoft.jocket.transport.websocket.JocketWebSocketEndpoint;
+import com.jeedsoft.jocket.util.JocketException;
+import com.jeedsoft.jocket.util.JocketStringUtil;
 
 public class JocketDeployer
 {
@@ -27,7 +26,9 @@ public class JocketDeployer
 
 	private static Node root = new Node("", 0);
 	
-	public static void deploy(ServletContext context, Class<? extends JocketAbstractEndpoint>[] classes)
+	private static Map<String, Class<? extends JocketAbstractEndpoint>> classMap  = new HashMap<>();
+	
+	public static void deploy(ServletContext context, Class<? extends JocketAbstractEndpoint>[] classes) throws JocketException
 	{
         JocketWebSocketEndpoint.setApplicationContextPath(context.getContextPath());
 		for (Class<? extends JocketAbstractEndpoint> cls: classes) {
@@ -35,11 +36,11 @@ public class JocketDeployer
 		}
 	}
 	
-	private static void deploy(ServletContext context, Class<? extends JocketAbstractEndpoint> cls)
+	private static void deploy(ServletContext context, Class<? extends JocketAbstractEndpoint> cls) throws JocketException
 	{
 		if (!JocketAbstractEndpoint.class.isAssignableFrom(cls)) {
 			String message = "The Jocket class '" + cls.getName() + "' must extends " + JocketAbstractEndpoint.class;
-			throw new JocketRuntimeException(message);
+			throw new JocketException(message);
 		}
         try {
         	JocketEndpoint annotation = cls.getAnnotation(JocketEndpoint.class);
@@ -48,19 +49,17 @@ public class JocketDeployer
             ServerContainer container = (ServerContainer)context.getAttribute(WEBSOCKET_CONTAINER_KEY);
         	Builder builder = Builder.create(JocketWebSocketEndpoint.class, path);
         	container.addEndpoint(builder.build());
-        	add(new JocketEndpointConfig(annotation, cls));
+        	addToTree(new JocketEndpointConfig(annotation, cls));
+        	classMap.put(cls.getName(), cls);
         }
         catch (DeploymentException e) {
-        	throw new JocketRuntimeException("Failed to deploy Jocket endpoint as WebSocket", e);
+        	throw new JocketException("Failed to deploy Jocket endpoint as WebSocket", e);
         }
-		catch (JocketException e) {
-        	throw new JocketRuntimeException("Failed to deploy Jocket endpoint: " + e.getMessage(), e);
-		}
 	}
 
-	private static synchronized void add(JocketEndpointConfig item) throws JocketException
+	private static synchronized void addToTree(JocketEndpointConfig item) throws JocketException
 	{
-		String[] parts = StringUtil.split(item.getPath().replaceAll("^/$", ""), "/");
+		String[] parts = JocketStringUtil.split(item.getPath().replaceAll("^/$", ""), "/");
 		Node node = root;
 		for (int i = 1; i < parts.length; ++i) {
 			String part = parts[i];
@@ -79,10 +78,10 @@ public class JocketDeployer
 	
 	public static synchronized JocketEndpointConfig getConfig(String path) throws JocketException
 	{
-		if (StringUtil.isEmpty(path)) {
+		if (JocketStringUtil.isEmpty(path)) {
 			throw new JocketException("The Jocket request path cannot be empty.");
 		}
-		String[] parts = StringUtil.split(path.replaceAll("^/$|\\?.*", ""), "/");
+		String[] parts = JocketStringUtil.split(path.replaceAll("^/$|\\?.*", ""), "/");
 		List<Node> stack = new ArrayList<>(parts.length);
 		stack.add(root);
 		while (!stack.isEmpty()) {
@@ -101,9 +100,15 @@ public class JocketDeployer
 		throw new JocketException("Jocket path not found: [" + path + "]");
 	}
 	
+	public static Class<? extends JocketAbstractEndpoint> getEndpointClass(String className)
+	{
+		return classMap.get(className);
+	}
+	
 	public static synchronized void clear()
 	{
 		root = new Node("", 0);
+		classMap.clear();
 	}
 
 	public static synchronized String getTreeText()

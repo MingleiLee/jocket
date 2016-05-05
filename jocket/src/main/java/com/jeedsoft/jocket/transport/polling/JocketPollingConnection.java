@@ -1,4 +1,4 @@
-package com.jeedsoft.jocket.connection.impl;
+package com.jeedsoft.jocket.transport.polling;
 
 import java.io.IOException;
 
@@ -8,9 +8,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.jeedsoft.jocket.connection.JocketConnection;
-import com.jeedsoft.jocket.connection.JocketStub;
+import com.jeedsoft.jocket.connection.JocketSession;
 import com.jeedsoft.jocket.event.JocketEvent;
-import com.jeedsoft.jocket.servlet.JocketPollingServlet;
 
 public class JocketPollingConnection extends JocketConnection
 {
@@ -20,14 +19,14 @@ public class JocketPollingConnection extends JocketConnection
 	
 	private AsyncContext context;
 	
-	public JocketPollingConnection(JocketStub stub)
+	public JocketPollingConnection(JocketSession session)
 	{
-		super(stub);
+		super(session);
 	}
 
-	public JocketPollingConnection(JocketStub stub, AsyncContext context)
+	public JocketPollingConnection(JocketSession session, AsyncContext context)
 	{
-		super(stub);
+		super(session);
 		this.context = context;
 	}
 
@@ -42,13 +41,13 @@ public class JocketPollingConnection extends JocketConnection
 	}
 
 	@Override
-	public void onEvent(String connectionId, JocketEvent event)
+	public void onEvent(String sessionId, JocketEvent event)
 	{
 		try {
 			JocketPollingServlet.downstream(this, event);
 		}
 		catch (IOException e) {
-			logger.error("[Jocket] Failed to send message: cid={}, event={}", connectionId, event);
+			logger.error("[Jocket] Failed to send message: sid={}, event={}", sessionId, event);
 		}
 	}
 

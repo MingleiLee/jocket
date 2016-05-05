@@ -1,11 +1,10 @@
-package com.jeedsoft.jocket.servlet;
+package com.jeedsoft.jocket.transport.polling;
 
 import java.io.IOException;
 
 import javax.servlet.AsyncEvent;
 import javax.servlet.AsyncListener;
 
-import com.jeedsoft.jocket.connection.impl.JocketPollingConnection;
 import com.jeedsoft.jocket.event.JocketEvent;
 
 public class JocketPollingAsyncListener implements AsyncListener

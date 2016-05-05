@@ -1,4 +1,4 @@
-package com.jeedsoft.jocket.exception;
+package com.jeedsoft.jocket.util;
 
 public class JocketRuntimeException extends RuntimeException
 {

@@ -12,9 +12,9 @@ import com.jeedsoft.jocket.event.JocketQueueManager;
 
 import redis.clients.jedis.JedisPubSub;
 
-public class JocketRedisListener
+public class JocketRedisSubscriber
 {
-	private static final Logger logger = LoggerFactory.getLogger(JocketRedisListener.class);
+	private static final Logger logger = LoggerFactory.getLogger(JocketRedisSubscriber.class);
 	
     public static final String channel = "JocketEventNotification";
 	
@@ -77,9 +77,9 @@ public class JocketRedisListener
 	    {
 			logger.trace("[Jocket] Message received from Redis: {}", message);
 			JSONObject json = new JSONObject(message);
-			String connectionId = json.getString("cid");
+			String sessionId = json.getString("sessionId");
 			JocketRedisQueue queue = (JocketRedisQueue)JocketQueueManager.getQueue();
-			queue.notifySubscriber(connectionId);
+			queue.notifySubscriber(sessionId);
 	    }
 	}
 }

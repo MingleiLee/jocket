@@ -1,12 +1,12 @@
 package com.jeedsoft.jocket.event;
 
-import com.jeedsoft.jocket.connection.JocketStub;
-import com.jeedsoft.jocket.connection.JocketStubManager;
-import com.jeedsoft.jocket.storage.memory.JocketMemoryQueue;
+import com.jeedsoft.jocket.connection.JocketSession;
+import com.jeedsoft.jocket.connection.JocketSessionManager;
+import com.jeedsoft.jocket.storage.local.JocketLocalQueue;
 
 public class JocketQueueManager
 {
-	private static JocketQueue queue = new JocketMemoryQueue();
+	private static JocketQueue queue = new JocketLocalQueue();
 
 	public static JocketQueue getQueue()
 	{
@@ -28,25 +28,25 @@ public class JocketQueueManager
 		queue.stop();
 	}
 
-	public static void publish(String connectionId, JocketEvent event)
+	public static void publish(String sessionId, JocketEvent event)
 	{
-		JocketStub stub = JocketStubManager.get(connectionId);
-		if (stub != null) {
+		JocketSession session = JocketSessionManager.get(sessionId);
+		if (session != null) {
 			if (event.getType() == JocketEvent.TYPE_NORMAL) {
-				stub.setLastMessageTime(System.currentTimeMillis());
+				session.setLastMessageTime(System.currentTimeMillis());
 			}
-			queue.publish(connectionId, event);
+			queue.publish(sessionId, event);
 		}
 	}
 
-	public static void subscribe(JocketSubscriber subscriber, String connectionId)
+	public static void subscribe(JocketSubscriber subscriber, String sessionId)
 	{
-		queue.subscribe(subscriber, connectionId);
+		queue.subscribe(subscriber, sessionId);
 	}
 
-	public static void unsubscribe(String connectionId, boolean clearEvents)
+	public static void unsubscribe(String sessionId, boolean clearEvents)
 	{
-		queue.unsubscribe(connectionId, clearEvents);
+		queue.unsubscribe(sessionId, clearEvents);
 	}
 
 	public static int getQueueCount()

@@ -1,4 +1,4 @@
-package com.jeedsoft.jocket.storage.memory;
+package com.jeedsoft.jocket.storage.local;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -8,7 +8,7 @@ import java.util.Queue;
 import com.jeedsoft.jocket.event.JocketAbstractQueue;
 import com.jeedsoft.jocket.event.JocketEvent;
 
-public class JocketMemoryQueue extends JocketAbstractQueue
+public class JocketLocalQueue extends JocketAbstractQueue
 {
 	private static final int MAX_QUEUE_SIZE = 1000;
 	
@@ -31,14 +31,14 @@ public class JocketMemoryQueue extends JocketAbstractQueue
 	}
 
 	@Override
-	public void publish(String connectionId, JocketEvent event)
+	public void publish(String sessionId, JocketEvent event)
 	{
 		Queue<JocketEvent> queue;
 		synchronized(queues) {
-			queue = queues.get(connectionId);
+			queue = queues.get(sessionId);
 			if (queue == null) {
 				queue = new LinkedList<>();
-				queues.put(connectionId, queue);
+				queues.put(sessionId, queue);
 			}
 		}
 		synchronized(queue) {
@@ -47,18 +47,18 @@ public class JocketMemoryQueue extends JocketAbstractQueue
 			}
 			queue.add(event);
 		}
-		notifySubscriber(connectionId);
+		notifySubscriber(sessionId);
 	}
 
 	@Override
-	public void unsubscribe(String connectionId, boolean isPermenant)
+	public void unsubscribe(String sessionId, boolean isPermenant)
 	{
 		synchronized(subscribers) {
-			subscribers.remove(connectionId);
+			subscribers.remove(sessionId);
 		}
 		if (isPermenant) {
 			synchronized(queues) {
-				queues.remove(connectionId);
+				queues.remove(sessionId);
 			}
 		}
 	}
@@ -72,11 +72,11 @@ public class JocketMemoryQueue extends JocketAbstractQueue
 	}
 
 	@Override
-	protected JocketEvent pollEvent(String connectionId)
+	protected JocketEvent pollEvent(String sessionId)
 	{
 		Queue<JocketEvent> queue;
 		synchronized(queues) {
-			queue = queues.get(connectionId);
+			queue = queues.get(sessionId);
 		}
 		if (queue == null) {
 			return null;

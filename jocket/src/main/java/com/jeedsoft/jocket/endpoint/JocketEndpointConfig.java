@@ -7,8 +7,8 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.jeedsoft.jocket.exception.JocketException;
-import com.jeedsoft.jocket.util.StringUtil;
+import com.jeedsoft.jocket.util.JocketException;
+import com.jeedsoft.jocket.util.JocketStringUtil;
 
 public class JocketEndpointConfig
 {
@@ -47,7 +47,7 @@ public class JocketEndpointConfig
 				}
 				else {
 					path.append(part);
-					pattern.append(StringUtil.escapeRegex(part));
+					pattern.append(JocketStringUtil.escapeRegex(part));
 				}
 			}
 			this.path = path.toString();

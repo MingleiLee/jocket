@@ -1,4 +1,4 @@
-package com.jeedsoft.jocket.endpoint;
+package com.jeedsoft.jocket.connection;
 
 import org.json.JSONObject;
 

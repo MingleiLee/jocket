@@ -6,11 +6,11 @@ public interface JocketQueue
 
 	void stop();
 	
-	void publish(String connectionId, JocketEvent event);
+	void publish(String sessionId, JocketEvent event);
 	
-	void subscribe(JocketSubscriber subscriber, String connectionId);
+	void subscribe(JocketSubscriber subscriber, String sessionId);
 
-	void unsubscribe(String connectionId, boolean isPermenant);
+	void unsubscribe(String sessionId, boolean isPermenant);
 
 	int getQueueCount();
 
