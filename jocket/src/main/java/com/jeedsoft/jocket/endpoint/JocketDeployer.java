@@ -2,59 +2,27 @@ package com.jeedsoft.jocket.endpoint;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.servlet.ServletContext;
-import javax.websocket.DeploymentException;
-import javax.websocket.server.ServerContainer;
-import javax.websocket.server.ServerEndpointConfig.Builder;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.jeedsoft.jocket.transport.websocket.JocketWebSocketEndpoint;
 import com.jeedsoft.jocket.util.JocketException;
 import com.jeedsoft.jocket.util.JocketStringUtil;
 
 public class JocketDeployer
 {
-	private static final Logger logger = LoggerFactory.getLogger(JocketDeployer.class);
-
-	private static final String WEBSOCKET_CONTAINER_KEY = "javax.websocket.server.ServerContainer";
-
 	private static Node root = new Node("", 0);
 	
-	private static Map<String, Class<? extends JocketAbstractEndpoint>> classMap  = new HashMap<>();
-	
-	public static void deploy(ServletContext context, Class<? extends JocketAbstractEndpoint>[] classes) throws JocketException
+	private static Map<String, Class<? extends JocketAbstractEndpoint>> classMap = new HashMap<>();
+
+	public static void deploy(Class<? extends JocketAbstractEndpoint>[] classes) throws JocketException
 	{
-        JocketWebSocketEndpoint.setApplicationContextPath(context.getContextPath());
 		for (Class<? extends JocketAbstractEndpoint> cls: classes) {
-			deploy(context, cls);
+	    	JocketEndpoint annotation = cls.getAnnotation(JocketEndpoint.class);
+	    	addToTree(new JocketEndpointConfig(annotation, cls));
+	    	classMap.put(cls.getName(), cls);
 		}
-	}
-	
-	private static void deploy(ServletContext context, Class<? extends JocketAbstractEndpoint> cls) throws JocketException
-	{
-		if (!JocketAbstractEndpoint.class.isAssignableFrom(cls)) {
-			String message = "The Jocket class '" + cls.getName() + "' must extends " + JocketAbstractEndpoint.class;
-			throw new JocketException(message);
-		}
-        try {
-        	JocketEndpoint annotation = cls.getAnnotation(JocketEndpoint.class);
-        	String path = annotation.value();
-        	logger.info("[Jocket] Deploying: path={}, class={}", path, cls.getName());
-            ServerContainer container = (ServerContainer)context.getAttribute(WEBSOCKET_CONTAINER_KEY);
-        	Builder builder = Builder.create(JocketWebSocketEndpoint.class, path);
-        	container.addEndpoint(builder.build());
-        	addToTree(new JocketEndpointConfig(annotation, cls));
-        	classMap.put(cls.getName(), cls);
-        }
-        catch (DeploymentException e) {
-        	throw new JocketException("Failed to deploy Jocket endpoint as WebSocket", e);
-        }
 	}
 
 	private static synchronized void addToTree(JocketEndpointConfig item) throws JocketException
@@ -111,6 +79,26 @@ public class JocketDeployer
 		classMap.clear();
 	}
 
+	public static synchronized List<String> getPaths()
+	{
+		List<String> paths = new ArrayList<>();
+		fillPaths(root, paths);
+		Collections.sort(paths);
+		return paths;
+	}
+	
+	private static void fillPaths(Node node, List<String> paths)
+	{
+		if (node.config != null) {
+			paths.add(node.config.getAnnotationPath());
+		}
+		if (!node.children.isEmpty()) {
+			for (Node child: node.children.values()) {
+				fillPaths(child, paths);
+			}
+		}
+	}
+	
 	public static synchronized String getTreeText()
 	{
 		StringBuilder sb = new StringBuilder();

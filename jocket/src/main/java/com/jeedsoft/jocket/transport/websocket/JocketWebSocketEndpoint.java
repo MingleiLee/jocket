@@ -134,6 +134,9 @@ public class JocketWebSocketEndpoint extends Endpoint
 		wsSession.getUserProperties().put("jocket_sid", sessionId);
 	}
 	
+	/**
+	 * Attention: This method is invoked through reflection in JocketDeployer
+	 */
 	public static void setApplicationContextPath(String contextPath)
 	{
 		applicationContextPath = JocketStringUtil.isEmpty(contextPath) ? null : contextPath;

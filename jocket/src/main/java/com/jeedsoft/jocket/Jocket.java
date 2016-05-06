@@ -8,6 +8,11 @@ import com.jeedsoft.jocket.event.JocketQueueManager;
 
 public class Jocket
 {
+	public static void send(String sessionId, Object data)
+	{
+		emit(sessionId, "message", data);
+	}
+
 	public static void emit(String sessionId, String name, Object data)
 	{
 		JocketEvent event = new JocketEvent(JocketEvent.TYPE_NORMAL, name, data);
@@ -21,21 +26,8 @@ public class Jocket
 		JocketQueueManager.publish(sessionId, event);
 	}
 	
-	public static long getLastMessageTime(String sessionId)
+	public static JocketSession getSession(String sessionId)
 	{
-		JocketSession session = JocketSessionManager.get(sessionId);
-		if (session == null) {
-			return 0;
-		}
-		return session.getLastMessageTime();
-	}
-	
-	public static <T> T getAttribute(String sessionId, String key)
-	{
-		JocketSession session = JocketSessionManager.get(sessionId);
-		if (session == null) {
-			return null;
-		}
-		return session.getAttribute(key);
+		return JocketSessionManager.get(sessionId);
 	}
 }

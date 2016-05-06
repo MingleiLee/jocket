@@ -46,7 +46,7 @@ public class JocketRedisSessionStore implements JocketSessionStore
 	{
 		String key = getBaseKey(id);
 		Map<String, String> map = JocketRedisExecutor.hgetAll(key);
-		return JocketRedisSession.fromMap(map);
+		return map.isEmpty() ? null : JocketRedisSession.fromMap(map);
 	}
 
 	@Override

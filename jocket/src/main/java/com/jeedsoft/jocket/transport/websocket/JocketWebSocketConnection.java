@@ -14,8 +14,6 @@ import com.jeedsoft.jocket.event.JocketEvent;
 public class JocketWebSocketConnection extends JocketConnection
 {
 	private static final Logger logger = LoggerFactory.getLogger(JocketWebSocketConnection.class);
-	
-	public static final long HEARTBEAT_INTERVAL = 60_000;
 
 	private Session wsSession;
 

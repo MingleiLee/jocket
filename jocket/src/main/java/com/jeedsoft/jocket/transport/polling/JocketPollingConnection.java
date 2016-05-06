@@ -15,8 +15,6 @@ public class JocketPollingConnection extends JocketConnection
 {
 	private static final Logger logger = LoggerFactory.getLogger(JocketPollingConnection.class);
 	
-	public static final long POLLING_INTERVAL = 25_000;
-	
 	private AsyncContext context;
 	
 	public JocketPollingConnection(JocketSession session)

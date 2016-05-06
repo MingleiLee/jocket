@@ -13,8 +13,7 @@ import com.jeedsoft.jocket.endpoint.JocketAbstractEndpoint;
 import com.jeedsoft.jocket.endpoint.JocketDeployer;
 import com.jeedsoft.jocket.event.JocketEvent;
 import com.jeedsoft.jocket.event.JocketQueueManager;
-import com.jeedsoft.jocket.transport.polling.JocketPollingConnection;
-import com.jeedsoft.jocket.transport.websocket.JocketWebSocketConnection;
+import com.jeedsoft.jocket.util.JocketConstant;
 import com.jeedsoft.jocket.util.JocketJsonUtil;
 
 public class JocketSession
@@ -247,10 +246,10 @@ public class JocketSession
 	{
 		long brokenMillis; 
 		if (TRANSPORT_WEBSOCKET.equals(getTransport())) {
-			brokenMillis = JocketWebSocketConnection.HEARTBEAT_INTERVAL + 20_000;
+			brokenMillis = JocketConstant.HEARTBEAT_INTERVAL + 20_000;
 		}
 		else {
-			brokenMillis = JocketPollingConnection.POLLING_INTERVAL + 20_000;
+			brokenMillis = JocketConstant.POLLING_INTERVAL + 20_000;
 		}
 		long heartbeatTime = Math.max(getLastHeartbeatTime(), getStartTime());
 		return heartbeatTime + brokenMillis < System.currentTimeMillis();

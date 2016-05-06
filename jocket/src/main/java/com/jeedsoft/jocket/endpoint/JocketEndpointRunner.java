@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 import com.jeedsoft.jocket.connection.JocketCloseReason;
 import com.jeedsoft.jocket.connection.JocketSession;
 import com.jeedsoft.jocket.event.JocketEvent;
-import com.jeedsoft.jocket.util.JocketReflectUtil;
+import com.jeedsoft.jocket.util.JocketReflection;
 
 public class JocketEndpointRunner
 {
@@ -44,7 +44,7 @@ public class JocketEndpointRunner
 				logger.trace("[Jocket] Invoking endpoint: sid={}, method={}.onOpen", args);
 			}
 			try {
-				JocketAbstractEndpoint endpoint = JocketReflectUtil.newInstance(cls);
+				JocketAbstractEndpoint endpoint = JocketReflection.newInstance(cls);
 				endpoint.onOpen(session);
 			}
 			catch (Throwable e) {
@@ -73,7 +73,7 @@ public class JocketEndpointRunner
 				logger.trace("[Jocket] Invoking endpoint: sid={}, method={}.onClose, reason={}", args);
 			}
 			try {
-				JocketAbstractEndpoint endpoint = JocketReflectUtil.newInstance(cls);
+				JocketAbstractEndpoint endpoint = JocketReflection.newInstance(cls);
 				endpoint.onClose(session, reason);
 			}
 			catch (Throwable e) {
@@ -103,7 +103,7 @@ public class JocketEndpointRunner
 			}
 			try {
 				session.setLastMessageTime(System.currentTimeMillis());
-				JocketAbstractEndpoint endpoint = JocketReflectUtil.newInstance(cls);
+				JocketAbstractEndpoint endpoint = JocketReflection.newInstance(cls);
 				endpoint.onMessage(session, event.getName(), event.getData());
 			}
 			catch (Throwable e) {

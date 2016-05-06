@@ -7,7 +7,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.jeedsoft.jocket.JocketServer;
+import com.jeedsoft.jocket.JocketService;
 import com.jeedsoft.jocket.event.JocketQueueManager;
 
 import redis.clients.jedis.JedisPubSub;
@@ -59,7 +59,7 @@ public class JocketRedisSubscriber
 	        }
 	        catch (Throwable e) {
 	        	logger.error("[Jocket] Redis subscription thread error", e);
-	        	if (JocketServer.isRunning()) {
+	        	if (JocketService.isRunning()) {
 	        		new Timer().schedule(new TimerTask() {
 						public void run() {
 			        		start();

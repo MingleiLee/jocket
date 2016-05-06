@@ -21,7 +21,9 @@ public class JocketCleaner
 	private static final long interval = 10_000;
 	
 	private static Timer timer;
-
+	
+	private static long lastStatMillis = 0;
+	
 	public static synchronized void start()
 	{
 		if (timer != null) {
@@ -58,13 +60,18 @@ public class JocketCleaner
 				if (!brokenSessions.isEmpty()) {
 					logger.debug("[Jocket] Removed {} corrupted sessions.", brokenSessions.size());
 				}
-				Object[] args = {
-					JocketSessionManager.size(),
-					JocketQueueManager.getSubscriberCount(),
-					JocketQueueManager.getQueueCount(),
-					JocketConnectionManager.size()
-				};
-				logger.debug("[Jocket] Statistics: session={}, queue={}, local connection={}, local subscriber={}", args);
+				long now = System.currentTimeMillis();
+				long interval = 60_000;
+				if (now / interval != lastStatMillis / interval) {
+					lastStatMillis = now;
+					Object[] args = {
+						JocketSessionManager.size(),
+						JocketQueueManager.getSubscriberCount(),
+						JocketQueueManager.getQueueCount(),
+						JocketConnectionManager.size()
+					};
+					logger.debug("[Jocket] Statistics: session={}, queue={}, local connection={}, local subscriber={}", args);
+				}
 			}
 		}
 	}

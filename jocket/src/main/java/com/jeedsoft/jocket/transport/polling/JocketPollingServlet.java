@@ -19,6 +19,7 @@ import com.jeedsoft.jocket.connection.JocketSession;
 import com.jeedsoft.jocket.connection.JocketSessionManager;
 import com.jeedsoft.jocket.endpoint.JocketEndpointRunner;
 import com.jeedsoft.jocket.event.JocketEvent;
+import com.jeedsoft.jocket.util.JocketConstant;
 import com.jeedsoft.jocket.util.JocketException;
 import com.jeedsoft.jocket.util.JocketIoUtil;
 
@@ -58,7 +59,7 @@ public class JocketPollingServlet extends HttpServlet
 	        AsyncContext context = request.startAsync();
 			JocketPollingConnection cn = new JocketPollingConnection(session, context);
 	        context.addListener(new JocketPollingAsyncListener(cn));
-	        context.setTimeout(JocketPollingConnection.POLLING_INTERVAL);
+	        context.setTimeout(JocketConstant.POLLING_INTERVAL);
 	        session.setLastHeartbeatTime(System.currentTimeMillis());
 	        JocketConnectionManager.add(cn);
 			if (isFirstPolling) {

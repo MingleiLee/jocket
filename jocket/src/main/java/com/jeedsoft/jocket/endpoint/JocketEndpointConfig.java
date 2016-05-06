@@ -14,6 +14,8 @@ public class JocketEndpointConfig
 {
 	private String endpointClassName;
 	
+	private String annotationPath;
+	
 	private String path;
 	
 	private Pattern pattern;
@@ -23,6 +25,7 @@ public class JocketEndpointConfig
 	public JocketEndpointConfig(JocketEndpoint annotation, Class<? extends JocketAbstractEndpoint> cls) throws JocketException
 	{
 		this.endpointClassName = cls.getName();
+		this.annotationPath = annotation.value();
 		String annoPath = annotation.value();
 		String regex = "(/([^/*\\{\\}]+|\\{[^/*\\{\\}]+\\}))+";
 		if (annoPath == null || (!annoPath.equals("/") && !Pattern.matches(regex, annoPath))) {
@@ -53,6 +56,11 @@ public class JocketEndpointConfig
 			this.path = path.toString();
 			this.pattern = Pattern.compile(pattern.toString());
 		}
+	}
+
+	public String getAnnotationPath()
+	{
+		return annotationPath;
 	}
 
 	public String getPath()
