@@ -22,7 +22,7 @@ public class JocketEndpointConfig
 	
 	private List<String> pathParamNames;
 	
-	public JocketEndpointConfig(JocketEndpoint annotation, Class<? extends JocketAbstractEndpoint> cls) throws JocketException
+	public JocketEndpointConfig(JocketServerEndpoint annotation, Class<? extends JocketEndpoint> cls) throws JocketException
 	{
 		this.endpointClassName = cls.getName();
 		this.annotationPath = annotation.value();

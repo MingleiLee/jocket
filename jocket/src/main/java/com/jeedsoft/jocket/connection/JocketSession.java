@@ -1,60 +1,50 @@
 package com.jeedsoft.jocket.connection;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.jeedsoft.jocket.endpoint.JocketAbstractEndpoint;
 import com.jeedsoft.jocket.endpoint.JocketDeployer;
-import com.jeedsoft.jocket.event.JocketEvent;
-import com.jeedsoft.jocket.event.JocketQueueManager;
+import com.jeedsoft.jocket.endpoint.JocketEndpoint;
+import com.jeedsoft.jocket.message.JocketPacket;
+import com.jeedsoft.jocket.message.JocketQueueManager;
 import com.jeedsoft.jocket.util.JocketConstant;
-import com.jeedsoft.jocket.util.JocketJsonUtil;
 
 public class JocketSession
 {
-	private static final Logger logger = LoggerFactory.getLogger(JocketSession.class);
-
 	public static final String STATUS_PREPARED		= "prepared";
-	public static final String STATUS_CONNECTED		= "connected";
-	public static final String STATUS_RECONNECTING	= "reconnecting";
+	public static final String STATUS_OPEN			= "open";
+	public static final String STATUS_CLOSED		= "closed";
 
 	public static final String TRANSPORT_WEBSOCKET	= "websocket";
 	public static final String TRANSPORT_POLLING	= "polling";
-
-	public static final String KEY_ID 					= "id";
-	public static final String KEY_ENDPOINT_CLASS_NAME	= "endpointClassName";
-	public static final String KEY_HTTP_SESSION_ID		= "httpSessionId";
-	public static final String KEY_TRANSPORT			= "transport";
-	public static final String KEY_STATUS				= "status";
-	public static final String KEY_START_TIME			= "startTime";
-	public static final String KEY_LAST_HEARTBEAT_TIME	= "lastHeartbeatTime";
-	public static final String KEY_LAST_MESSAGE_TIME	= "lastMessageTime";
-	public static final String KEY_TIMEOUT_SECONDS		= "timeoutSeconds";
-	public static final String KEY_PARAMETERS			= "parameters";
 	
 	protected String id;
-	
-	private String httpSessionId;
 
+	private String requestPath;
+
+	private String httpSessionId;
+	
 	private String endpointClassName;
 	
 	private String transport;
 
 	private String status;
-
-	private long startTime;
 	
+	private boolean connected;
+
+	private boolean waitingHeartbeat;
+	
+	private long startTime;
+
+	private long closeTime;
+
 	private long lastHeartbeatTime;
 
 	private long lastMessageTime;
 
 	private int timeoutSeconds;
+
+	private JocketCloseReason closeReason;
 
 	private Map<String, String> parameters = new HashMap<>();
 
@@ -62,23 +52,6 @@ public class JocketSession
 
 	public JocketSession()
 	{
-	}
-
-	public JocketSession(Map<String, String> baseData, Map<String, Object> attributes)
-	{
-		this.id = baseData.get(KEY_ID);
-		this.endpointClassName = baseData.get(KEY_ENDPOINT_CLASS_NAME);
-		this.httpSessionId = baseData.get(KEY_HTTP_SESSION_ID);
-		this.transport = baseData.get(KEY_TRANSPORT);
-		this.status = baseData.get(KEY_STATUS);
-		this.startTime = Long.parseLong(baseData.get(KEY_START_TIME));
-		this.lastHeartbeatTime = Long.parseLong(baseData.get(KEY_LAST_HEARTBEAT_TIME));
-		this.lastMessageTime = Long.parseLong(baseData.get(KEY_LAST_MESSAGE_TIME));
-		this.timeoutSeconds = Integer.parseInt(baseData.get(KEY_TIMEOUT_SECONDS));
-		this.parameters = JocketJsonUtil.toStringMap(new JSONObject(baseData.get(KEY_PARAMETERS)));
-		if (attributes != null) {
-			this.attributes = attributes;
-		}
 	}
 
 	public String getId()
@@ -91,9 +64,24 @@ public class JocketSession
 		this.id = id;
 	}
 
-	public Class<? extends JocketAbstractEndpoint> getEndpointClass()
+	public String getRequestPath()
+	{
+		return requestPath;
+	}
+
+	public void setRequestPath(String requestPath)
+	{
+		this.requestPath = requestPath;
+	}
+
+	public Class<? extends JocketEndpoint> getEndpointClass()
 	{
 		return JocketDeployer.getEndpointClass(endpointClassName);
+	}
+
+	public String getEndpointClassName()
+	{
+		return endpointClassName;
 	}
 
 	public void setEndpointClassName(String endpointClassName)
@@ -126,9 +114,37 @@ public class JocketSession
 		return status;
 	}
 
+	public boolean isOpen()
+	{
+		return STATUS_OPEN.equals(getStatus());
+	}
+
 	public void setStatus(String status)
 	{
 		this.status = status;
+		if (STATUS_CLOSED.equals(status)) {
+			this.closeTime = System.currentTimeMillis();
+		}
+	}
+
+	public boolean isConnected()
+	{
+		return connected;
+	}
+
+	public void setConnected(boolean connected)
+	{
+		this.connected = connected;
+	}
+
+	public boolean isWaitingHeartbeat()
+	{
+		return waitingHeartbeat;
+	}
+
+	public void setWaitingHeartbeat(boolean waitingHeartbeat)
+	{
+		this.waitingHeartbeat = waitingHeartbeat;
 	}
 
 	public long getStartTime()
@@ -139,6 +155,16 @@ public class JocketSession
 	public void setStartTime(long startTime)
 	{
 		this.startTime = startTime;
+	}
+
+	public long getCloseTime()
+	{
+		return closeTime;
+	}
+
+	public void setCloseTime(long closeTime)
+	{
+		this.closeTime = closeTime;
 	}
 
 	public long getLastHeartbeatTime()
@@ -171,6 +197,16 @@ public class JocketSession
 		this.timeoutSeconds = timeoutSeconds;
 	}
 
+	public JocketCloseReason getCloseReason()
+	{
+		return closeReason;
+	}
+
+	public void setCloseReason(JocketCloseReason closeReason)
+	{
+		this.closeReason = closeReason;
+	}
+
 	public String getParameter(String key)
 	{
 		return parameters.get(key);
@@ -197,53 +233,28 @@ public class JocketSession
 		attributes.put(key, value);
 	}
 
-	protected void setAttributes(Map<String, Object> attributes)
+	public void setAttributes(Map<String, Object> attributes)
 	{
-		this.attributes = attributes;
-	}
-
-	public void emit(String eventName, Object data)
-	{
-		JocketEvent event = new JocketEvent(JocketEvent.TYPE_NORMAL, eventName, data);
-		JocketQueueManager.publish(id, event);
+		this.attributes.clear();
+		if (attributes != null) {
+			this.attributes.putAll(attributes);
+		}
 	}
 
 	public void send(Object data)
 	{
-		emit("message", data);
+		send(data, null);
 	}
 
-	public Map<String, String> toMap()
+	public void send(Object data, String name)
 	{
-		Map<String, String> map = new HashMap<>();
-		put(map, KEY_ID, id);
-		put(map, KEY_ENDPOINT_CLASS_NAME, endpointClassName);
-		put(map, KEY_HTTP_SESSION_ID, httpSessionId);
-		put(map, KEY_TRANSPORT, transport);
-		put(map, KEY_STATUS, status + "");
-		put(map, KEY_START_TIME, startTime + "");
-		put(map, KEY_LAST_HEARTBEAT_TIME, lastHeartbeatTime + "");
-		put(map, KEY_LAST_MESSAGE_TIME, lastMessageTime + "");
-		put(map, KEY_TIMEOUT_SECONDS, timeoutSeconds + "");
-		put(map, KEY_PARAMETERS, new JSONObject(parameters).toString());
-		if (logger.isDebugEnabled()) {
-			DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-			if (startTime != 0) {
-				put(map, KEY_START_TIME + "$", df.format(startTime));
-			}
-			if (lastHeartbeatTime != 0) {
-				put(map, KEY_LAST_HEARTBEAT_TIME + "$", df.format(lastHeartbeatTime));
-			}
-			if (lastMessageTime != 0) {
-				put(map, KEY_LAST_MESSAGE_TIME + "$", df.format(lastMessageTime));
-			}
-		}
-		System.out.println(map);
-		return map;
+		JocketPacket event = new JocketPacket(JocketPacket.TYPE_MESSAGE, name, data);
+		JocketQueueManager.publishMessage(id, event);
 	}
 	
 	public boolean isBroken()
 	{
+		//TODO check closed sessions
 		long brokenMillis; 
 		if (TRANSPORT_WEBSOCKET.equals(getTransport())) {
 			brokenMillis = JocketConstant.HEARTBEAT_INTERVAL + 20_000;
@@ -253,12 +264,5 @@ public class JocketSession
 		}
 		long heartbeatTime = Math.max(getLastHeartbeatTime(), getStartTime());
 		return heartbeatTime + brokenMillis < System.currentTimeMillis();
-	}
-
-	private static void put(Map<String, String> map, String key, String value)
-	{
-		if (value != null) {
-			map.put(key, value);
-		}
 	}
 }

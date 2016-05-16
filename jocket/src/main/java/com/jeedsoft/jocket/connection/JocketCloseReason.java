@@ -7,20 +7,24 @@ public class JocketCloseReason
     public static final int NORMAL				= 1000;
     public static final int GOING_AWAY			= 1001;
     public static final int CLOSED_ABNORMALLY	= 1006;
+    public static final int NEED_INIT			= 5000;
+    public static final int NO_SESSION			= 5001;
+    public static final int INIT_FAILED			= 5002;
+    public static final int CONNECT_FAILED		= 5100;
 
     private int code = NORMAL;
     
-    private String description;
+    private String message;
     
     public JocketCloseReason(int code)
 	{
 		this.code = code;
 	}
     
-    public JocketCloseReason(int code, String description)
+    public JocketCloseReason(int code, String message)
 	{
 		this.code = code;
-		this.description = description;
+		this.message = message;
 	}
 
 	public int getCode()
@@ -28,32 +32,35 @@ public class JocketCloseReason
 		return code;
 	}
 
-	public String getDescription()
+	public String getMessage()
 	{
-		return description;
+		return message;
 	}
 
-	public String toJsonString()
+	public JSONObject toJson()
 	{
 		JSONObject json = new JSONObject();
 		json.put("code", code);
-		if (description != null) {
-			json.put("description", description);
+		if (message != null) {
+			json.put("message", message);
 		}
-		return json.toString();
+		return json;
 	}
 
 	@Override
 	public String toString()
 	{
-		return toJsonString();
+		return toJson().toString();
 	}
 
 	public static JocketCloseReason parse(String text)
 	{
+		if (text == null) {
+			return null;
+		}
 		JSONObject json = new JSONObject(text);
 		int code = json.getInt("code");
-		String description = json.optString("description");
-		return new JocketCloseReason(code, description);
+		String message = json.optString("message");
+		return new JocketCloseReason(code, message);
 	}
 }

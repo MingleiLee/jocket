@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import com.jeedsoft.jocket.connection.JocketCloseReason;
 import com.jeedsoft.jocket.connection.JocketSession;
-import com.jeedsoft.jocket.event.JocketEvent;
+import com.jeedsoft.jocket.message.JocketPacket;
 import com.jeedsoft.jocket.util.JocketReflection;
 
 public class JocketEndpointRunner
@@ -22,9 +22,9 @@ public class JocketEndpointRunner
 		new Thread(new CloseRunner(session, reason)).start();
 	}
 	
-	public static void doMessage(JocketSession session, JocketEvent event)
+	public static void doMessage(JocketSession session, JocketPacket message)
 	{
-		new Thread(new MessageRunner(session, event)).start();
+		new Thread(new MessageRunner(session, message)).start();
 	}
 
 	private static class OpenRunner implements Runnable
@@ -38,13 +38,13 @@ public class JocketEndpointRunner
 
 		public void run()
 		{
-			Class<? extends JocketAbstractEndpoint> cls = session.getEndpointClass();
+			Class<? extends JocketEndpoint> cls = session.getEndpointClass();
 			if (logger.isTraceEnabled()) {
 				Object[] args = {session.getId(), cls.getName()};
 				logger.trace("[Jocket] Invoking endpoint: sid={}, method={}.onOpen", args);
 			}
 			try {
-				JocketAbstractEndpoint endpoint = JocketReflection.newInstance(cls);
+				JocketEndpoint endpoint = JocketReflection.newInstance(cls);
 				endpoint.onOpen(session);
 			}
 			catch (Throwable e) {
@@ -67,13 +67,13 @@ public class JocketEndpointRunner
 
 		public void run()
 		{
-			Class<? extends JocketAbstractEndpoint> cls = session.getEndpointClass();
+			Class<? extends JocketEndpoint> cls = session.getEndpointClass();
 			if (logger.isTraceEnabled()) {
 				Object[] args = {session.getId(), cls.getName(), reason};
 				logger.trace("[Jocket] Invoking endpoint: sid={}, method={}.onClose, reason={}", args);
 			}
 			try {
-				JocketAbstractEndpoint endpoint = JocketReflection.newInstance(cls);
+				JocketEndpoint endpoint = JocketReflection.newInstance(cls);
 				endpoint.onClose(session, reason);
 			}
 			catch (Throwable e) {
@@ -86,25 +86,25 @@ public class JocketEndpointRunner
 	{
 		private JocketSession session;
 		
-		private JocketEvent event;
+		private JocketPacket message;
 		
-		public MessageRunner(JocketSession session, JocketEvent event)
+		public MessageRunner(JocketSession session, JocketPacket message)
 		{
 			this.session = session;
-			this.event = event;
+			this.message = message;
 		}
 
 		public void run()
 		{
-			Class<? extends JocketAbstractEndpoint> cls = session.getEndpointClass();
+			Class<? extends JocketEndpoint> cls = session.getEndpointClass();
 			if (logger.isTraceEnabled()) {
-				Object[] args = {session.getId(), cls.getName(), event};
-				logger.trace("[Jocket] Invoking endpoint: sid={}, method={}.onMessage, event={}", args);
+				Object[] args = {session.getId(), cls.getName(), message};
+				logger.trace("[Jocket] Invoking endpoint: sid={}, method={}.onMessage, message={}", args);
 			}
 			try {
 				session.setLastMessageTime(System.currentTimeMillis());
-				JocketAbstractEndpoint endpoint = JocketReflection.newInstance(cls);
-				endpoint.onMessage(session, event.getName(), event.getData());
+				JocketEndpoint endpoint = JocketReflection.newInstance(cls);
+				endpoint.onMessage(session, message.getName(), message.getData());
 			}
 			catch (Throwable e) {
 				logger.error("[Jocket] Failed to invoke " + cls.getName() + ".onMessage", e);

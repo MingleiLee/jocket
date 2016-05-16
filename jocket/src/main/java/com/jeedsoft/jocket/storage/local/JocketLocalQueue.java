@@ -5,14 +5,14 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
 
-import com.jeedsoft.jocket.event.JocketAbstractQueue;
-import com.jeedsoft.jocket.event.JocketEvent;
+import com.jeedsoft.jocket.message.JocketAbstractQueue;
+import com.jeedsoft.jocket.message.JocketPacket;
 
 public class JocketLocalQueue extends JocketAbstractQueue
 {
 	private static final int MAX_QUEUE_SIZE = 1000;
 	
-	private final Map<String, Queue<JocketEvent>> queues = new HashMap<>();
+	private final Map<String, Queue<JocketPacket>> queues = new HashMap<>();
 
 	@Override
 	public void start()
@@ -31,36 +31,40 @@ public class JocketLocalQueue extends JocketAbstractQueue
 	}
 
 	@Override
-	public void publish(String sessionId, JocketEvent event)
+	public void removeSubscriber(String sessionId, boolean clearQueue)
 	{
-		Queue<JocketEvent> queue;
+		synchronized(subscribers) {
+			subscribers.remove(sessionId);
+		}
+		if (clearQueue) {
+			synchronized(queues) {
+				queues.remove(sessionId);
+			}
+		}
+	}
+
+	@Override
+	public void publishMessage(String sessionId, JocketPacket packet)
+	{
+		Queue<JocketPacket> queue;
 		synchronized(queues) {
 			queue = queues.get(sessionId);
 			if (queue == null) {
 				queue = new LinkedList<>();
 				queues.put(sessionId, queue);
 			}
-		}
-		synchronized(queue) {
 			while (queue.size() >= MAX_QUEUE_SIZE) {
 				queue.remove();
 			}
-			queue.add(event);
+			queue.add(packet);
 		}
-		notifySubscriber(sessionId);
+		notifyNewMessage(sessionId);
 	}
 
 	@Override
-	public void unsubscribe(String sessionId, boolean isPermenant)
+	public void publishEvent(String sessionId, JocketPacket event)
 	{
-		synchronized(subscribers) {
-			subscribers.remove(sessionId);
-		}
-		if (isPermenant) {
-			synchronized(queues) {
-				queues.remove(sessionId);
-			}
-		}
+		notifyNewEvent(sessionId, event);
 	}
 
 	@Override
@@ -72,17 +76,12 @@ public class JocketLocalQueue extends JocketAbstractQueue
 	}
 
 	@Override
-	protected JocketEvent pollEvent(String sessionId)
+	protected JocketPacket pollMessage(String sessionId)
 	{
-		Queue<JocketEvent> queue;
+		Queue<JocketPacket> queue;
 		synchronized(queues) {
 			queue = queues.get(sessionId);
-		}
-		if (queue == null) {
-			return null;
-		}
-		synchronized(queue) {
-			return queue.poll();
+			return queue == null ? null : queue.poll();
 		}
 	}
 }

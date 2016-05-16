@@ -3,13 +3,17 @@ package com.jeedsoft.jocket.transport.polling;
 import java.io.IOException;
 
 import javax.servlet.AsyncContext;
+import javax.servlet.http.HttpServletResponse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.jeedsoft.jocket.connection.JocketCloseReason;
 import com.jeedsoft.jocket.connection.JocketConnection;
+import com.jeedsoft.jocket.connection.JocketConnectionManager;
 import com.jeedsoft.jocket.connection.JocketSession;
-import com.jeedsoft.jocket.event.JocketEvent;
+import com.jeedsoft.jocket.message.JocketPacket;
+import com.jeedsoft.jocket.util.JocketIoUtil;
 
 public class JocketPollingConnection extends JocketConnection
 {
@@ -39,19 +43,33 @@ public class JocketPollingConnection extends JocketConnection
 	}
 
 	@Override
-	public void onEvent(String sessionId, JocketEvent event)
+	public boolean isLongTime()
 	{
-		try {
-			JocketPollingServlet.downstream(this, event);
+		return false;
+	}
+
+	@Override
+	public synchronized void downstream(JocketPacket packet) throws IOException
+	{
+		if (!isActive()) {
+			return;
 		}
-		catch (IOException e) {
-			logger.error("[Jocket] Failed to send message: sid={}, event={}", sessionId, event);
+		String sessionId = getSessionId();
+		logger.trace("[Jocket] Polling finished: sid={}, content={}", sessionId, packet);
+		try {
+	        JocketConnectionManager.remove(sessionId); //connection must be removed before write response
+	        HttpServletResponse response = (HttpServletResponse)context.getResponse();
+	        JocketIoUtil.writeJson(response, packet.toJson());
+	        context.complete();
+		}
+		finally {
+			setActive(false);
 		}
 	}
 
 	@Override
-	public boolean isAutoNext()
+	public void close(JocketCloseReason reason) throws IOException
 	{
-		return false;
+		downstream(new JocketPacket(JocketPacket.TYPE_CLOSE, null, reason));
 	}
 }

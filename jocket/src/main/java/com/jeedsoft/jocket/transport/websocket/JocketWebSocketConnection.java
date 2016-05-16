@@ -7,9 +7,11 @@ import javax.websocket.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.jeedsoft.jocket.connection.JocketCloseReason;
 import com.jeedsoft.jocket.connection.JocketConnection;
 import com.jeedsoft.jocket.connection.JocketSession;
-import com.jeedsoft.jocket.event.JocketEvent;
+import com.jeedsoft.jocket.message.JocketPacket;
+import com.jeedsoft.jocket.util.JocketWebSocketUtil;
 
 public class JocketWebSocketConnection extends JocketConnection
 {
@@ -34,19 +36,23 @@ public class JocketWebSocketConnection extends JocketConnection
 	}
 
 	@Override
-	public void onEvent(String sessionId, JocketEvent event)
+	public boolean isLongTime()
 	{
-		try {
-			JocketWebSocketEndpoint.downstream(wsSession, event);
-		}
-		catch (IOException e) {
-			logger.error("[Jocket] Failed to send message: sid={}, event={}", sessionId, event);
+		return true;
+	}
+
+	@Override
+	public synchronized void downstream(JocketPacket packet) throws IOException
+	{
+		if (isActive()) {
+			logger.debug("[Jocket] Send message to client: sid={}, packet={}", getSessionId(), packet);
+			wsSession.getAsyncRemote().sendText(packet.toJson().toString());
 		}
 	}
 
 	@Override
-	public boolean isAutoNext()
+	public void close(JocketCloseReason reason) throws IOException
 	{
-		return true;
+		JocketWebSocketUtil.close(wsSession, reason.getCode(), reason.getMessage());
 	}
 }

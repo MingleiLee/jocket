@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class JocketJsonUtil
@@ -16,5 +17,13 @@ public class JocketJsonUtil
 			map.put(key, json.isNull(key) ? null : json.getString(key));
 		}
 		return map;
+	}
+	
+	public static JSONArray putAll(JSONArray json, Object[] items)
+	{
+		for (Object item: items) {
+			json.put(item);
+		}
+		return json;
 	}
 }

@@ -1,5 +1,6 @@
-package com.jeedsoft.jocket.event;
+package com.jeedsoft.jocket.message;
 
+import com.jeedsoft.jocket.connection.JocketConnection;
 import com.jeedsoft.jocket.connection.JocketSession;
 import com.jeedsoft.jocket.connection.JocketSessionManager;
 import com.jeedsoft.jocket.storage.local.JocketLocalQueue;
@@ -28,34 +29,39 @@ public class JocketQueueManager
 		queue.stop();
 	}
 
-	public static void publish(String sessionId, JocketEvent event)
+	public static void addSubscriber(JocketConnection cn)
+	{
+		queue.addSubscriber(cn);
+	}
+
+	public static void removeSubscriber(String sessionId, boolean clearQueue)
+	{
+		queue.removeSubscriber(sessionId, clearQueue);
+	}
+
+	public static void publishMessage(String sessionId, JocketPacket message)
 	{
 		JocketSession session = JocketSessionManager.get(sessionId);
 		if (session != null) {
-			if (event.getType() == JocketEvent.TYPE_NORMAL) {
+			if (JocketPacket.TYPE_MESSAGE.equals(message.getType())) {
 				session.setLastMessageTime(System.currentTimeMillis());
 			}
-			queue.publish(sessionId, event);
+			queue.publishMessage(sessionId, message);
 		}
 	}
 
-	public static void subscribe(JocketSubscriber subscriber, String sessionId)
+	public static void publishEvent(String sessionId, JocketPacket event)
 	{
-		queue.subscribe(subscriber, sessionId);
+		queue.publishEvent(sessionId, event);
 	}
 
-	public static void unsubscribe(String sessionId, boolean clearEvents)
+	public static int getSubscriberCount()
 	{
-		queue.unsubscribe(sessionId, clearEvents);
+		return queue.getSubscriberCount();
 	}
 
 	public static int getQueueCount()
 	{
 		return queue.getQueueCount();
-	}
-	
-	public static int getSubscriberCount()
-	{
-		return queue.getSubscriberCount();
 	}
 }

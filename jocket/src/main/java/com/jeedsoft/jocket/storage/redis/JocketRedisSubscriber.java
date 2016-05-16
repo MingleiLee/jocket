@@ -8,7 +8,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.jeedsoft.jocket.JocketService;
-import com.jeedsoft.jocket.event.JocketQueueManager;
+import com.jeedsoft.jocket.message.JocketPacket;
+import com.jeedsoft.jocket.message.JocketQueueManager;
 
 import redis.clients.jedis.JedisPubSub;
 
@@ -78,8 +79,14 @@ public class JocketRedisSubscriber
 			logger.trace("[Jocket] Message received from Redis: {}", message);
 			JSONObject json = new JSONObject(message);
 			String sessionId = json.getString("sessionId");
+			JocketPacket event = JocketPacket.parse(json.optString("event"));
 			JocketRedisQueue queue = (JocketRedisQueue)JocketQueueManager.getQueue();
-			queue.notifySubscriber(sessionId);
+			if (event == null) {
+				queue.notifyNewMessage(sessionId);
+			}
+			else {
+				queue.notifyNewEvent(sessionId, event);
+			}
 	    }
 	}
 }

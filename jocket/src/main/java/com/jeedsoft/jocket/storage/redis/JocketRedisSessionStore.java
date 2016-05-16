@@ -16,7 +16,7 @@ public class JocketRedisSessionStore implements JocketSessionStore
 	public void add(JocketSession session)
 	{
 		String key = getBaseKey(session.getId());
-		JocketRedisExecutor.hmset(key, session.toMap());
+		JocketRedisExecutor.hmset(key, JocketRedisSession.toRedisHash(session));
 	}
 
 	@Override
@@ -33,7 +33,7 @@ public class JocketRedisSessionStore implements JocketSessionStore
 				Object v = JocketRedisObjectNotation.toObject(attrData.get(k));
 				attributes.put(k, v);
 			}
-			session = new JocketSession(baseData, attributes);
+			session = JocketRedisSession.toLocalSession(baseData, attributes);
 		}
 		if (!baseData.isEmpty() || !attrData.isEmpty()) {
 			JocketRedisExecutor.del(baseKey, attrKey);
@@ -90,7 +90,7 @@ public class JocketRedisSessionStore implements JocketSessionStore
 	public synchronized boolean contains(String id)
 	{
 		String key = getBaseKey(id);
-		return JocketRedisExecutor.exists(key); //TODO optimize for performance
+		return JocketRedisExecutor.exists(key); //TODO exclude closed sessions?
 	}
 
 	public String getBaseData(String id, String field)

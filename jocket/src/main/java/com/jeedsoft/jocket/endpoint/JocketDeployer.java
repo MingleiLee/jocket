@@ -14,12 +14,12 @@ public class JocketDeployer
 {
 	private static Node root = new Node("", 0);
 	
-	private static Map<String, Class<? extends JocketAbstractEndpoint>> classMap = new HashMap<>();
+	private static Map<String, Class<? extends JocketEndpoint>> classMap = new HashMap<>();
 
-	public static void deploy(Class<? extends JocketAbstractEndpoint>[] classes) throws JocketException
+	public static void deploy(Class<? extends JocketEndpoint>[] classes) throws JocketException
 	{
-		for (Class<? extends JocketAbstractEndpoint> cls: classes) {
-	    	JocketEndpoint annotation = cls.getAnnotation(JocketEndpoint.class);
+		for (Class<? extends JocketEndpoint> cls: classes) {
+	    	JocketServerEndpoint annotation = cls.getAnnotation(JocketServerEndpoint.class);
 	    	addToTree(new JocketEndpointConfig(annotation, cls));
 	    	classMap.put(cls.getName(), cls);
 		}
@@ -68,7 +68,7 @@ public class JocketDeployer
 		throw new JocketException("Jocket path not found: [" + path + "]");
 	}
 	
-	public static Class<? extends JocketAbstractEndpoint> getEndpointClass(String className)
+	public static Class<? extends JocketEndpoint> getEndpointClass(String className)
 	{
 		return classMap.get(className);
 	}

@@ -12,7 +12,7 @@ import com.jeedsoft.jocket.connection.JocketConnectionManager;
 import com.jeedsoft.jocket.connection.JocketSession;
 import com.jeedsoft.jocket.connection.JocketSessionManager;
 import com.jeedsoft.jocket.endpoint.JocketEndpointRunner;
-import com.jeedsoft.jocket.event.JocketQueueManager;
+import com.jeedsoft.jocket.message.JocketQueueManager;
 
 public class JocketCleaner
 {
@@ -51,7 +51,7 @@ public class JocketCleaner
 			}
 			List<JocketSession> brokenSessions = JocketSessionManager.checkStore();
 			for (JocketSession session: brokenSessions) {
-				JocketQueueManager.unsubscribe(session.getId(), true);
+				JocketQueueManager.removeSubscriber(session.getId(), true);
 				int code = JocketCloseReason.CLOSED_ABNORMALLY;
 				JocketCloseReason reason = new JocketCloseReason(code, "no new polling");
 				JocketEndpointRunner.doClose(session, reason);
@@ -66,9 +66,9 @@ public class JocketCleaner
 					lastStatMillis = now;
 					Object[] args = {
 						JocketSessionManager.size(),
-						JocketQueueManager.getSubscriberCount(),
 						JocketQueueManager.getQueueCount(),
-						JocketConnectionManager.size()
+						JocketConnectionManager.size(),
+						JocketQueueManager.getSubscriberCount(),
 					};
 					logger.debug("[Jocket] Statistics: session={}, queue={}, local connection={}, local subscriber={}", args);
 				}

@@ -3,27 +3,26 @@ package com.jeedsoft.jocket;
 import com.jeedsoft.jocket.connection.JocketCloseReason;
 import com.jeedsoft.jocket.connection.JocketSession;
 import com.jeedsoft.jocket.connection.JocketSessionManager;
-import com.jeedsoft.jocket.event.JocketEvent;
-import com.jeedsoft.jocket.event.JocketQueueManager;
+import com.jeedsoft.jocket.message.JocketPacket;
+import com.jeedsoft.jocket.message.JocketQueueManager;
 
 public class Jocket
 {
 	public static void send(String sessionId, Object data)
 	{
-		emit(sessionId, "message", data);
+		send(sessionId, data, null);
 	}
 
-	public static void emit(String sessionId, String name, Object data)
+	public static void send(String sessionId, Object data, String name)
 	{
-		JocketEvent event = new JocketEvent(JocketEvent.TYPE_NORMAL, name, data);
-		JocketQueueManager.publish(sessionId, event);
+		JocketPacket event = new JocketPacket(JocketPacket.TYPE_MESSAGE, name, data);
+		JocketQueueManager.publishMessage(sessionId, event);
 	}
 
-	public static void close(String sessionId, int code, String description)
+	public static void close(String sessionId, int code, String message)
 	{
-		JocketCloseReason reason = new JocketCloseReason(code, description);
-		JocketEvent event = new JocketEvent(JocketEvent.TYPE_CLOSE, null, reason.toJsonString());
-		JocketQueueManager.publish(sessionId, event);
+		JocketCloseReason reason = new JocketCloseReason(code, message);
+		JocketSessionManager.close(sessionId, reason, true);
 	}
 	
 	public static JocketSession getSession(String sessionId)

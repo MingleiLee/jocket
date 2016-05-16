@@ -5,15 +5,15 @@ import java.io.IOException;
 import javax.servlet.AsyncEvent;
 import javax.servlet.AsyncListener;
 
-import com.jeedsoft.jocket.event.JocketEvent;
+import com.jeedsoft.jocket.message.JocketPacket;
 
 public class JocketPollingAsyncListener implements AsyncListener
 {
-	private JocketPollingConnection connection;
+	private JocketPollingConnection cn;
 	
-	public JocketPollingAsyncListener(JocketPollingConnection connection)
+	public JocketPollingAsyncListener(JocketPollingConnection cn)
 	{
-		this.connection = connection;
+		this.cn = cn;
 	}
 
 	@Override
@@ -35,6 +35,6 @@ public class JocketPollingAsyncListener implements AsyncListener
 	@Override
 	public void onTimeout(AsyncEvent event) throws IOException
 	{
-		JocketPollingServlet.downstream(connection, new JocketEvent(JocketEvent.TYPE_TIMEOUT));
+		cn.downstream(new JocketPacket(JocketPacket.TYPE_NOOP));
 	}
 }
