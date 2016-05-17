@@ -188,26 +188,26 @@ Jocket._log = function()
 
 Jocket._transportClasses = {};
 
-Jocket.PACKET_TYPE_OPEN    = "open",
-Jocket.PACKET_TYPE_CLOSE   = "close",
-Jocket.PACKET_TYPE_PING    = "ping",
-Jocket.PACKET_TYPE_PONG    = "pong",
-Jocket.PACKET_TYPE_NOOP    = "noop",
-Jocket.PACKET_TYPE_MESSAGE = "message",
+Jocket.PACKET_TYPE_OPEN    = "open";
+Jocket.PACKET_TYPE_CLOSE   = "close";
+Jocket.PACKET_TYPE_PING    = "ping";
+Jocket.PACKET_TYPE_PONG    = "pong";
+Jocket.PACKET_TYPE_NOOP    = "noop";
+Jocket.PACKET_TYPE_MESSAGE = "message";
 
-Jocket.CLOSE_NORMAL         = 1000, //normal closure
-Jocket.CLOSE_AWAY           = 1001,	//close browser or reload page
-Jocket.CLOSE_ABNORMAL       = 1006,	//network error
-Jocket.CLOSE_NEED_INIT      = 3600,	//no jocket_sid passed to server
-Jocket.CLOSE_NO_SESSION     = 3601,	//the Jocket session specified by jocket_sid is not found
-Jocket.CLOSE_INIT_FAILED    = 3602,	//failed to open *.jocket_prepare
-Jocket.CLOSE_CONNECT_FAILED = 3603,	//all available transports failed
+Jocket.CLOSE_NORMAL         = 1000; //normal closure
+Jocket.CLOSE_AWAY           = 1001;	//close browser or reload page
+Jocket.CLOSE_ABNORMAL       = 1006;	//network error
+Jocket.CLOSE_NEED_INIT      = 3600;	//no jocket_sid passed to server
+Jocket.CLOSE_NO_SESSION     = 3601;	//the Jocket session specified by jocket_sid is not found
+Jocket.CLOSE_INIT_FAILED    = 3602;	//failed to open *.jocket_prepare
+Jocket.CLOSE_CONNECT_FAILED = 3603;	//all available transports failed
 
-Jocket.EVENT_OPEN   = "open",
-Jocket.EVENT_CLOSE  = "close",
-Jocket.EVENT_PAUSE  = "pause",
-Jocket.EVENT_RESUME = "resume",
-Jocket.EVENT_ERROR  = "error",
+Jocket.EVENT_OPEN   = "open";
+Jocket.EVENT_CLOSE  = "close";
+Jocket.EVENT_PAUSE  = "pause";
+Jocket.EVENT_RESUME = "resume";
+Jocket.EVENT_ERROR  = "error";
 
 //-----------------------------------------------------------------------
 // Jocket.Ws
