@@ -7,6 +7,7 @@ import java.util.TimerTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.jeedsoft.jocket.connection.JocketCloseCode;
 import com.jeedsoft.jocket.connection.JocketCloseReason;
 import com.jeedsoft.jocket.connection.JocketConnectionManager;
 import com.jeedsoft.jocket.connection.JocketSession;
@@ -52,7 +53,7 @@ public class JocketCleaner
 			List<JocketSession> brokenSessions = JocketSessionManager.checkStore();
 			for (JocketSession session: brokenSessions) {
 				JocketQueueManager.removeSubscriber(session.getId(), true);
-				int code = JocketCloseReason.CLOSED_ABNORMALLY;
+				int code = JocketCloseCode.CLOSED_ABNORMALLY;
 				JocketCloseReason reason = new JocketCloseReason(code, "no new polling");
 				JocketEndpointRunner.doClose(session, reason);
 			}

@@ -50,9 +50,9 @@ public class JocketQueueManager
 		}
 	}
 
-	public static void publishEvent(String sessionId, JocketPacket event)
+	public static void publishEvent(String sessionId, JocketPacket packet)
 	{
-		queue.publishEvent(sessionId, event);
+		queue.publishEvent(sessionId, packet);
 	}
 
 	public static int getSubscriberCount()

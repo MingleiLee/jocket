@@ -62,9 +62,9 @@ public class JocketLocalQueue extends JocketAbstractQueue
 	}
 
 	@Override
-	public void publishEvent(String sessionId, JocketPacket event)
+	public void publishEvent(String sessionId, JocketPacket packet)
 	{
-		notifyNewEvent(sessionId, event);
+		notifyNewEvent(sessionId, packet);
 	}
 
 	@Override

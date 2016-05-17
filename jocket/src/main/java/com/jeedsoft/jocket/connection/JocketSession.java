@@ -248,8 +248,8 @@ public class JocketSession
 
 	public void send(Object data, String name)
 	{
-		JocketPacket event = new JocketPacket(JocketPacket.TYPE_MESSAGE, name, data);
-		JocketQueueManager.publishMessage(id, event);
+		JocketPacket packet = new JocketPacket(JocketPacket.TYPE_MESSAGE, name, data);
+		JocketQueueManager.publishMessage(id, packet);
 	}
 	
 	public boolean isBroken()

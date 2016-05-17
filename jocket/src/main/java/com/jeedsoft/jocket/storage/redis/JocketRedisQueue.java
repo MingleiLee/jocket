@@ -42,11 +42,11 @@ public class JocketRedisQueue extends JocketAbstractQueue
 	}
 
 	@Override
-	public void publishEvent(String sessionId, JocketPacket event)
+	public void publishEvent(String sessionId, JocketPacket packet)
 	{
 		JSONObject data = new JSONObject();
 		data.put("sessionId", sessionId);
-		data.put("event", event.toJson().toString());
+		data.put("event", packet.toString());
 		JocketRedisExecutor.publish(JocketRedisSubscriber.channel, data.toString());
 	}
 

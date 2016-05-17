@@ -12,9 +12,9 @@ public interface JocketQueue
 
 	void removeSubscriber(String sessionId, boolean isPermenant);
 	
-	void publishMessage(String sessionId, JocketPacket event);
+	void publishMessage(String sessionId, JocketPacket packet);
 
-	void publishEvent(String sessionId, JocketPacket event);
+	void publishEvent(String sessionId, JocketPacket packet);
 
 	int getSubscriberCount();
 

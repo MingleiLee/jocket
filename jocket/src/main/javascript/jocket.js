@@ -188,34 +188,26 @@ Jocket._log = function()
 
 Jocket._transportClasses = {};
 
-Jocket.PACKET_TYPE_OPEN		= "open",
-Jocket.PACKET_TYPE_CLOSE	= "close",
-Jocket.PACKET_TYPE_PING		= "ping",
-Jocket.PACKET_TYPE_PONG		= "pong",
-Jocket.PACKET_TYPE_NOOP		= "noop",
-Jocket.PACKET_TYPE_MESSAGE	= "message",
+Jocket.PACKET_TYPE_OPEN    = "open",
+Jocket.PACKET_TYPE_CLOSE   = "close",
+Jocket.PACKET_TYPE_PING    = "ping",
+Jocket.PACKET_TYPE_PONG    = "pong",
+Jocket.PACKET_TYPE_NOOP    = "noop",
+Jocket.PACKET_TYPE_MESSAGE = "message",
 
-Jocket.CLOSE_NORMAL			= 1000,
-Jocket.CLOSE_AWAY			= 1001,	//close browser or reload page
-Jocket.CLOSE_ABNORMAL		= 1006,	//network error
-Jocket.CLOSE_NEED_INIT		= 5000,	//prepare failed
-Jocket.CLOSE_NO_SESSION		= 5001,	//prepare failed
-Jocket.CLOSE_INIT_FAILED	= 5002,	//prepare failed
-Jocket.CLOSE_CONNECT_FAILED	= 5100,	//all available transports failed
+Jocket.CLOSE_NORMAL         = 1000, //normal closure
+Jocket.CLOSE_AWAY           = 1001,	//close browser or reload page
+Jocket.CLOSE_ABNORMAL       = 1006,	//network error
+Jocket.CLOSE_NEED_INIT      = 3600,	//no jocket_sid passed to server
+Jocket.CLOSE_NO_SESSION     = 3601,	//the Jocket session specified by jocket_sid is not found
+Jocket.CLOSE_INIT_FAILED    = 3602,	//failed to open *.jocket_prepare
+Jocket.CLOSE_CONNECT_FAILED = 3603,	//all available transports failed
 
-Jocket.EVENT_OPEN			= "open",
-Jocket.EVENT_CLOSE			= "close",
-Jocket.EVENT_PAUSE			= "pause",
-Jocket.EVENT_RESUME			= "resume",
-Jocket.EVENT_ERROR			= "error",
-	
-Jocket._predefinedEvents = {
-	open	: 1,
-	close	: 1,
-	pause	: 1,
-	resume	: 1,
-	error	: 1
-};
+Jocket.EVENT_OPEN   = "open",
+Jocket.EVENT_CLOSE  = "close",
+Jocket.EVENT_PAUSE  = "pause",
+Jocket.EVENT_RESUME = "resume",
+Jocket.EVENT_ERROR  = "error",
 
 //-----------------------------------------------------------------------
 // Jocket.Ws
@@ -237,7 +229,7 @@ Jocket.Ws.prototype.open = function()
 	var jocket = ws.jocket;
 	ws.webSocket = new WebSocket(ws.url);
 	ws.webSocket.ws = ws;
-	ws.webSocket.onopen	= Jocket.Ws.doWebSocketOpen;
+	ws.webSocket.onopen = Jocket.Ws.doWebSocketOpen;
 	ws.webSocket.onclose = Jocket.Ws.doWebSocketClose;
 	ws.webSocket.onerror = Jocket.Ws.doWebSocketError;
 	ws.webSocket.onmessage = Jocket.Ws.doWebSocketMessage;
@@ -245,11 +237,10 @@ Jocket.Ws.prototype.open = function()
 
 Jocket.Ws.prototype.close = function(code, message)
 {
-	this.webSocket.close(code, message);
-	this.destroy();
+	this.destroy(code, message);
 };
 
-Jocket.Ws.prototype.destroy = function()
+Jocket.Ws.prototype.destroy = function(code, message)
 {
 	var ws = this;
 	for (var key in ws.timers) {
@@ -264,7 +255,7 @@ Jocket.Ws.prototype.destroy = function()
 		webSocket.onclose = null;
 		webSocket.onerror = null;
 		webSocket.onmessage = null;
-		webSocket.close();
+		webSocket.close(code, message);
 	}
 };
 
@@ -410,18 +401,18 @@ Jocket.Polling.doSendPacketFailure = function(response)
 
 Jocket.Ajax = function(url)
 {
-	this.url		= url;
-	this.onsuccess	= null;
-	this.onfailure	= null;
-	this._status	= Jocket.Ajax.STATUS_NEW;
+	this.url = url;
+	this.onsuccess = null;
+	this.onfailure = null;
+	this._status = Jocket.Ajax.STATUS_NEW;
 };
 
-Jocket.Ajax.STATUS_NEW		= 0;
-Jocket.Ajax.STATUS_SENDING	= 1;
-Jocket.Ajax.STATUS_LOAD		= 2;
-Jocket.Ajax.STATUS_ERROR 	= 3;
-Jocket.Ajax.STATUS_ABORT 	= 4;
-Jocket.Ajax.STATUS_TIMEOUT	= 5;
+Jocket.Ajax.STATUS_NEW     = 0;
+Jocket.Ajax.STATUS_SENDING = 1;
+Jocket.Ajax.STATUS_LOAD    = 2;
+Jocket.Ajax.STATUS_ERROR   = 3;
+Jocket.Ajax.STATUS_ABORT   = 4;
+Jocket.Ajax.STATUS_TIMEOUT = 5;
 
 Jocket.Ajax.doLoad = function(event)
 {
@@ -472,15 +463,15 @@ Jocket.Ajax.prototype =
 {
 	submit: function(data)
 	{
-		var ajax 		= this;
-		var xhr 		= new XMLHttpRequest();
-		ajax._xhr		= xhr;
-		xhr._ajax		= ajax;
-		xhr.onload 		= Jocket.Ajax.doLoad;
-		xhr.onerror 	= Jocket.Ajax.doError;
-		xhr.onabort 	= Jocket.Ajax.doAbort;
-		xhr.ontimeout	= Jocket.Ajax.doTimeout;
-		var url 		= ajax.url;
+		var ajax = this;
+		var xhr = new XMLHttpRequest();
+		ajax._xhr = xhr;
+		xhr._ajax = ajax;
+		xhr.onload = Jocket.Ajax.doLoad;
+		xhr.onerror = Jocket.Ajax.doError;
+		xhr.onabort = Jocket.Ajax.doAbort;
+		xhr.ontimeout = Jocket.Ajax.doTimeout;
+		var url = ajax.url;
 		if (ajax.cache != true) {
 			url += (url.indexOf("?") == -1 ? "?" : "&") + "jocket_rnd=" + new Date().getTime() + Math.random();
 		}
@@ -526,10 +517,10 @@ Jocket.Ajax.prototype =
 	
 	_finish: function(event, status)
 	{
-		var ajax 		= this;
-		var xhr 		= ajax._xhr;
-		ajax._status	= status;
-		ajax.result 	= Jocket.Ajax._parseXmlHttpRequestResponse(xhr, status);
+		var ajax = this;
+		var xhr = ajax._xhr;
+		ajax._status = status;
+		ajax.result = Jocket.Ajax._parseXmlHttpRequestResponse(xhr, status);
 		if (ajax.result != null && ajax.result.success) {
 			if (ajax.onsuccess != null) {
 				ajax.onsuccess(ajax.result.json);
@@ -544,10 +535,10 @@ Jocket.Ajax.prototype =
 	
 	_cleanup: function()
 	{
-		var ajax	= this;
-		var xhr 	= ajax._xhr;
-		xhr._ajax	= null;
-		ajax._xhr	= null;
+		var ajax = this;
+		var xhr = ajax._xhr;
+		xhr._ajax = null;
+		ajax._xhr = null;
 	}
 };
 

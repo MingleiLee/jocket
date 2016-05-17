@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.jeedsoft.jocket.Jocket;
-import com.jeedsoft.jocket.connection.JocketCloseReason;
+import com.jeedsoft.jocket.connection.JocketCloseCode;
 import com.jeedsoft.jocket.connection.JocketSession;
 import com.jeedsoft.jocket.connection.JocketSessionManager;
 import com.jeedsoft.jocket.endpoint.JocketEndpointRunner;
@@ -36,7 +36,7 @@ public class JocketUpstreamHandler
 			JocketSessionManager.open(sessionId);
 		}
 		else if (JocketPacket.TYPE_CLOSE.equals(type)) {
-			Jocket.close(sessionId, JocketCloseReason.NORMAL, "Jocket session closed by user");
+			Jocket.close(sessionId, JocketCloseCode.NORMAL, "Jocket session closed by user");
 		}
 		else {
 			logger.error("[Jocket] Invalid packet type: " + type);

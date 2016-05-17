@@ -79,7 +79,7 @@ public class JocketRedisSubscriber
 			logger.trace("[Jocket] Message received from Redis: {}", message);
 			JSONObject json = new JSONObject(message);
 			String sessionId = json.getString("sessionId");
-			JocketPacket event = JocketPacket.parse(json.optString("event"));
+			JocketPacket event = JocketPacket.parse(json.optString("event", null));
 			JocketRedisQueue queue = (JocketRedisQueue)JocketQueueManager.getQueue();
 			if (event == null) {
 				queue.notifyNewMessage(sessionId);

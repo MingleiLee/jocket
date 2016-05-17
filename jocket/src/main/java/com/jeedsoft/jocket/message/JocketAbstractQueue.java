@@ -78,13 +78,13 @@ public abstract class JocketAbstractQueue implements JocketQueue
 		{
 			synchronized(cn) {
 				if (cn.isActive()) {
-					JocketPacket event = queue.pollMessage(sessionId);
-					if (event != null) {
+					JocketPacket packet = queue.pollMessage(sessionId);
+					if (packet != null) {
 						try {
-							cn.downstream(event);
+							cn.downstream(packet);
 						}
 						catch (Throwable e) {
-							logger.error("[Jocket] Failed to send message: sid={}, event={}", cn.getSessionId(), event);
+							logger.error("[Jocket] Failed to send message: sid={}, packet={}", cn.getSessionId(), packet);
 						}
 						if (cn.isLongTime()) {
 							queue.notifyNewMessage(sessionId);

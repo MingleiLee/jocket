@@ -90,11 +90,14 @@ public class JocketPacket implements Serializable
 
 	public static JocketPacket parse(String text)
 	{
+		if (text == null) {
+			return null;
+		}
 		JSONObject json = new JSONObject(text);
-		JocketPacket event = new JocketPacket();
-		event.type = json.optString("type", TYPE_MESSAGE);
-		event.name = json.optString("name", null);
-		event.data = json.optString("data", null);
-		return event;
+		JocketPacket packet = new JocketPacket();
+		packet.type = json.optString("type", TYPE_MESSAGE);
+		packet.name = json.optString("name", null);
+		packet.data = json.optString("data", null);
+		return packet;
 	}
 }

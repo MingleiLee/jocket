@@ -13,6 +13,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.jeedsoft.jocket.connection.JocketCloseCode;
 import com.jeedsoft.jocket.connection.JocketCloseReason;
 import com.jeedsoft.jocket.connection.JocketConnectionManager;
 import com.jeedsoft.jocket.connection.JocketSession;
@@ -46,7 +47,7 @@ public class JocketPollingServlet extends HttpServlet
 			//get session and check status
 			JocketSession session = JocketSessionManager.get(sessionId);
 			if (session == null) {
-				int code = JocketCloseReason.CLOSED_ABNORMALLY;
+				int code = JocketCloseCode.CLOSED_ABNORMALLY;
 				JocketCloseReason reason = new JocketCloseReason(code, "session not found");
 				JocketPacket packet = new JocketPacket(JocketPacket.TYPE_CLOSE, null, reason);
 				JocketIoUtil.writeJson(response, packet.toJson());

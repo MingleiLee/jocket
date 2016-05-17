@@ -9,6 +9,7 @@ import javax.websocket.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.jeedsoft.jocket.connection.JocketCloseCode;
 import com.jeedsoft.jocket.connection.JocketCloseReason;
 import com.jeedsoft.jocket.connection.JocketConnectionManager;
 import com.jeedsoft.jocket.connection.JocketSession;
@@ -33,7 +34,7 @@ public class JocketWebSocketEndpoint extends Endpoint
 			String sessionId = JocketWebSocketUtil.getParameter(wsSession, "jocket_sid");
 			if (sessionId == null) {
 				String message = "Jocket should be prepared first";
-				JocketWebSocketUtil.close(wsSession, JocketCloseReason.NEED_INIT, message);
+				JocketWebSocketUtil.close(wsSession, JocketCloseCode.NEED_INIT, message);
 				return;
 				/* TODO
 				String path = wsSession.getRequestURI().toString();
@@ -75,7 +76,7 @@ public class JocketWebSocketEndpoint extends Endpoint
 		}
 		catch (Exception e) {
 			logger.error("[Jocket] Failed to open WebSocket connection: path=" + getPath(wsSession), e);
-			JocketWebSocketUtil.close(wsSession, JocketCloseReason.CLOSED_ABNORMALLY, e.getMessage());
+			JocketWebSocketUtil.close(wsSession, JocketCloseCode.CLOSED_ABNORMALLY, e.getMessage());
 		}
 	}
 
