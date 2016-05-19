@@ -11,9 +11,9 @@ import com.jeedsoft.jocket.util.JocketConstant;
 
 public class JocketSession
 {
-	public static final String STATUS_PREPARED		= "prepared";
-	public static final String STATUS_OPEN			= "open";
-	public static final String STATUS_CLOSED		= "closed";
+	public static final String STATUS_NEW		= "new";
+	public static final String STATUS_OPEN		= "open";
+	public static final String STATUS_CLOSED	= "closed";
 
 	public static final String TRANSPORT_WEBSOCKET	= "websocket";
 	public static final String TRANSPORT_POLLING	= "polling";

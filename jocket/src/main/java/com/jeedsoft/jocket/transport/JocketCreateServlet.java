@@ -25,12 +25,12 @@ import com.jeedsoft.jocket.util.JocketIoUtil;
 import com.jeedsoft.jocket.util.JocketJsonUtil;
 import com.jeedsoft.jocket.util.JocketStringUtil;
 
-@WebServlet(urlPatterns="*.jocket", name="JocketPrepareServlet")
-public class JocketPrepareServlet extends HttpServlet
+@WebServlet(urlPatterns="*.jocket", name="JocketCreateServlet")
+public class JocketCreateServlet extends HttpServlet
 {
 	private static final long serialVersionUID = 1L;
 
-	private static final Logger logger = LoggerFactory.getLogger(JocketPrepareServlet.class);
+	private static final Logger logger = LoggerFactory.getLogger(JocketCreateServlet.class);
 
 	@Override
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
@@ -77,13 +77,13 @@ public class JocketPrepareServlet extends HttpServlet
 			session.setHttpSessionId(request.getSession().getId());
 			session.setEndpointClassName(config.getEndpointClassName());
 			session.setParameters(parameters);
-			session.setStatus(JocketSession.STATUS_PREPARED);
+			session.setStatus(JocketSession.STATUS_NEW);
 			String sessionId = JocketSessionManager.add(session);
 			result.put("sessionId", sessionId);
 			
 			//set response
 			JocketIoUtil.writeJson(response, result);
-			logger.debug("[Jocket] Jocket prepared: sid={}", sessionId);
+			logger.debug("[Jocket] Session created: sid={}", sessionId);
 		}
 		catch (JocketException e) {
 			throw new ServletException(e);

@@ -8,8 +8,8 @@ public class JocketCloseCode
     public static final int CLOSED_ABNORMALLY	= 1006; //network error
     
     //custom codes (the library level close codes should between 3000-3999, see RFC 6455)
-    public static final int NEED_INIT			= 3600; //no jocket_sid passed to server
-    public static final int NO_SESSION			= 3601; //the Jocket session specified by jocket_sid is not found
-    public static final int INIT_FAILED			= 3602; //failed to open *.jocket_prepare
+    public static final int NO_SESSION_PARAM  	= 3600; //the Jocket session ID parameter is missing
+    public static final int SESSION_NOT_FOUND	= 3601; //the Jocket session not found
+    public static final int CREATE_FAILED		= 3602; //failed to create Jocket session
     public static final int CONNECT_FAILED		= 3603; //all available transports failed
 }

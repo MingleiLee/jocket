@@ -33,8 +33,8 @@ public class JocketWebSocketEndpoint extends Endpoint
 			//get session and check status
 			String sessionId = JocketWebSocketUtil.getParameter(wsSession, "s");
 			if (sessionId == null) {
-				String message = "Jocket should be prepared first";
-				JocketWebSocketUtil.close(wsSession, JocketCloseCode.NEED_INIT, message);
+				String message = "The Jocket session ID parameter is missing";
+				JocketWebSocketUtil.close(wsSession, JocketCloseCode.NO_SESSION_PARAM, message);
 				return;
 			}
 			session = JocketSessionManager.get(sessionId);
@@ -42,7 +42,7 @@ public class JocketWebSocketEndpoint extends Endpoint
 				throw new JocketException("Jocket session not found: id=" + sessionId);
 			}
 			String status = session.getStatus();
-			if (!JocketSession.STATUS_PREPARED.equals(status)) {
+			if (!JocketSession.STATUS_NEW.equals(status)) {
 				throw new JocketException("Jocket status invalid: id=" + sessionId + ", status=" + status);
 			}
 			

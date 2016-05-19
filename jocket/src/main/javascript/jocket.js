@@ -13,12 +13,12 @@ var Jocket = function(url, options)
 	var path = index == -1 ? url : url.substring(0, index);
 	var args = index == -1 ? null : url.substring(index + 1);
 	if (/^http(s?):/.test(url)) {
-		jocket._prepareUrl = path + ".jocket" + (args == null ? "" : "?" + args);
+		jocket._createUrl = path + ".jocket" + (args == null ? "" : "?" + args);
 	}
 	else {
 		var dir = location.href.replace(/[\?#].*/, "").replace(/[^\/]+$/, "");
-		var prepareUrl = dir + "prepare.jocket?jocket_path=" + encodeURIComponent(path);
-		jocket._prepareUrl = prepareUrl + (args == null ? "" : "&" + args);
+		var createUrl = dir + "create.jocket?jocket_path=" + encodeURIComponent(path);
+		jocket._createUrl = createUrl + (args == null ? "" : "&" + args);
 	}
 	jocket.options = options || {};
 	jocket._transport = null;
@@ -58,10 +58,10 @@ Jocket.prototype.open = function()
 {
 	var jocket = this;
 	var ajax = new Jocket.Ajax();
-	ajax.url = jocket._prepareUrl;
+	ajax.url = jocket._createUrl;
 	ajax.timeParamName = "jocket_time";
-	ajax.onsuccess = Jocket.doPrepareSuccess;
-	ajax.onfailure = Jocket.doPrepareFailure;
+	ajax.onsuccess = Jocket.doCreateSuccess;
+	ajax.onfailure = Jocket.doCreateFailure;
 	ajax.jocket = jocket;
 	ajax.submit({transports:jocket.options.transports});
 };
@@ -173,13 +173,13 @@ Jocket.prototype._getWebSocketUrl = function()
 	return this._rootUrl.replace(/^http/, "ws") + "jocket-ws?s=" + this.sessionId;
 };
 
-Jocket.doPrepareSuccess = function(response)
+Jocket.doCreateSuccess = function(response)
 {
-	Jocket._log("[Jocket] Session prepared: sid=%s", response.sessionId);
+	Jocket._log("[Jocket] Session created: sid=%s", response.sessionId);
 	var jocket = this.jocket;
 	jocket.sessionId = response.sessionId;
 	jocket._transports = response.transports;
-	var url = jocket._prepareUrl.replace(/\.jocket.*/, "");
+	var url = jocket._createUrl.replace(/\.jocket.*/, "");
 	for (var i = 0; i < response.pathDepth; ++i) {
 		url = url.replace(/\/[^\/]*$/, ""); 
 	}
@@ -189,12 +189,12 @@ Jocket.doPrepareSuccess = function(response)
 	jocket._tryNextTransport();
 };
 
-Jocket.doPrepareFailure = function(event, status)
+Jocket.doCreateFailure = function(event, status)
 {
 	var ajax = this;
 	var jocket = ajax.jocket;
-	var data = {code:Jocket.CLOSE_INIT_FAILED, message:"Jocket initialization failed"};
-	console.error("[Jocket] Jocket prepare failed. status=%d, result=%o", status, ajax.result);
+	var data = {code:Jocket.CLOSE_CREATE_FAILED, message:"Failed to create session"};
+	console.error("[Jocket] Failed to create session: status=%d, result=%o", status, ajax.result);
 	jocket._fire(Jocket.EVENT_CLOSE, data);
 };
 
@@ -214,12 +214,13 @@ Jocket.PACKET_TYPE_PONG    = "pong";
 Jocket.PACKET_TYPE_NOOP    = "noop";
 Jocket.PACKET_TYPE_MESSAGE = "message";
 
-Jocket.CLOSE_NORMAL         = 1000; //normal closure
-Jocket.CLOSE_AWAY           = 1001; //close browser or reload page
-Jocket.CLOSE_ABNORMAL       = 1006; //network error
-Jocket.CLOSE_NO_SESSION     = 3601; //the Jocket session is not found
-Jocket.CLOSE_INIT_FAILED    = 3602; //failed to create session
-Jocket.CLOSE_CONNECT_FAILED = 3603; //all available transports failed
+Jocket.CLOSE_NORMAL            = 1000; //normal closure
+Jocket.CLOSE_AWAY              = 1001; //close browser or reload page
+Jocket.CLOSE_ABNORMAL          = 1006; //network error
+Jocket.CLOSE_NO_SESSION_PARAM  = 3600; //the Jocket session ID parameter is missing
+Jocket.CLOSE_SESSION_NOT_FOUND = 3601; //the Jocket session is not found
+Jocket.CLOSE_CREATE_FAILED     = 3602; //failed to create Jocket session
+Jocket.CLOSE_CONNECT_FAILED    = 3603; //all available transports failed
 
 Jocket.EVENT_OPEN   = "open";
 Jocket.EVENT_CLOSE  = "close";
@@ -417,7 +418,7 @@ Jocket.ZipTime =
 
 	serial: 0,
 	
-	previous: null,
+	previous: 0,
 	
 	now: function()
 	{
@@ -427,12 +428,12 @@ Jocket.ZipTime =
 			time = Jocket.ZipTime.digits[millis & 0x3F] + time;
 			millis >>>= 6;
 		}
-		if (time != Jocket.ZipTime.previous) {
-			Jocket.ZipTime.previous = time;
-			Jocket.ZipTime.serial = 0;
-			return time;
+		if (time == Jocket.ZipTime.previous) {
+			return time + "." + Jocket.ZipTime.serial++;
 		}
-		return time + "." + Jocket.ZipTime.serial++;
+		Jocket.ZipTime.previous = time;
+		Jocket.ZipTime.serial = 0;
+		return time;
 	}
 };
 
