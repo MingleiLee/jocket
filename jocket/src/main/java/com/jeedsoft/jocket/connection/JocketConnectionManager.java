@@ -13,18 +13,27 @@ public class JocketConnectionManager
 	private static final Logger logger = LoggerFactory.getLogger(JocketConnectionManager.class);
 
 	//connections on *this* server
-	private static Map<String, JocketConnection> map = new HashMap<>();
-	
+	private static Map<String, JocketConnection> connections = new HashMap<>();
+
+	//probing connections on *this* server
+	private static Map<String, JocketConnection> probingConnections = new HashMap<>();
+
 	public static synchronized void add(JocketConnection cn)
 	{
 		String sessionId = cn.getSessionId();
-		map.put(sessionId, cn);
+		connections.put(sessionId, cn);
 		cn.getSession().setConnected(true);
+	}
+
+	public static synchronized void addProbing(JocketConnection cn)
+	{
+		String sessionId = cn.getSessionId();
+		probingConnections.put(sessionId, cn);
 	}
 
 	public static synchronized void remove(String sessionId)
 	{
-		JocketConnection cn = map.remove(sessionId);
+		JocketConnection cn = connections.remove(sessionId);
 		if (cn == null) {
 			logger.debug("[Jocket] no connection found when removing. sid={}", sessionId);
 			return;
@@ -33,18 +42,33 @@ public class JocketConnectionManager
 		JocketQueueManager.removeSubscriber(sessionId, false);
 	}
 
+	public static synchronized void removeProbing(String sessionId)
+	{
+		JocketConnection cn = probingConnections.remove(sessionId);
+		if (cn == null) {
+			logger.debug("[Jocket] no probing connection found when removing. sid={}", sessionId);
+			return;
+		}
+	}
+
 	public static synchronized JocketConnection get(String sessionId)
 	{
-		return map.get(sessionId);
+		return connections.get(sessionId);
 	}
-	
+
+	public static synchronized JocketConnection getProbing(String sessionId)
+	{
+		return probingConnections.get(sessionId);
+	}
+
 	public static synchronized void clear()
 	{
-		map.clear();
+		connections.clear();
+		probingConnections.clear();
 	}
 	
 	public static synchronized int size()
 	{
-		return map.size();
+		return connections.size();
 	}
 }

@@ -15,8 +15,6 @@ import com.jeedsoft.jocket.endpoint.JocketDeployer;
 import com.jeedsoft.jocket.message.JocketQueue;
 import com.jeedsoft.jocket.message.JocketQueueManager;
 import com.jeedsoft.jocket.storage.JocketCleaner;
-import com.jeedsoft.jocket.transport.websocket.JocketWebSocketDeployer;
-import com.jeedsoft.jocket.transport.websocket.JocketWebSocketEndpoint;
 import com.jeedsoft.jocket.util.JocketException;
 
 public class JocketService
@@ -34,8 +32,6 @@ public class JocketService
 	 */
 	public static void start(ServletContext context) throws JocketException
 	{
-		JocketWebSocketEndpoint.setApplicationContextPath(context.getContextPath());
-		JocketWebSocketDeployer.deploy(context);
 		JocketCleaner.start();
 		JocketQueueManager.start();
 		isRunning = true;

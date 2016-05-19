@@ -25,7 +25,7 @@ import com.jeedsoft.jocket.util.JocketIoUtil;
 import com.jeedsoft.jocket.util.JocketJsonUtil;
 import com.jeedsoft.jocket.util.JocketStringUtil;
 
-@WebServlet(urlPatterns="*.jocket_prepare", name="JocketPrepareServlet")
+@WebServlet(urlPatterns="*.jocket", name="JocketPrepareServlet")
 public class JocketPrepareServlet extends HttpServlet
 {
 	private static final long serialVersionUID = 1L;
@@ -46,17 +46,24 @@ public class JocketPrepareServlet extends HttpServlet
 			return;
 		}
 		try {
-			String path = request.getServletPath().replaceFirst("\\.jocket_prepare.*", "");
+			String servletPath = request.getServletPath();
+			String path = request.getParameter("jocket_path");
+			if (path == null) {
+				path = servletPath.replaceFirst("\\.jocket.*", "");
+			}
 			logger.debug("[Jocket] Jocket preparing: path={}, query string={}", path, request.getQueryString());
 			JocketEndpointConfig config = JocketDeployer.getConfig(path);
 			JSONObject result = new JSONObject();
-			
+			result.put("pathDepth", servletPath.replaceAll("[^/]+", "").length());
+
 			//get parameters
 			Map<String, String> parameters = config.getPathParameterMap(path);
 			for (Map.Entry<String, String[]> entry: request.getParameterMap().entrySet()) {
-				parameters.put(entry.getKey(), entry.getValue()[0]);
+				String key = entry.getKey();
+				if (!key.startsWith("jocket_")) {
+					parameters.put(key, entry.getValue()[0]);
+				}
 			}
-			parameters.remove("jocket_rnd");
 			
 			//get options
 			String optionsText = JocketIoUtil.readText(request);

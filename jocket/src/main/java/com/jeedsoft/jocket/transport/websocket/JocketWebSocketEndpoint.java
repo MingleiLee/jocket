@@ -5,6 +5,7 @@ import javax.websocket.Endpoint;
 import javax.websocket.EndpointConfig;
 import javax.websocket.MessageHandler;
 import javax.websocket.Session;
+import javax.websocket.server.ServerEndpoint;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,44 +18,26 @@ import com.jeedsoft.jocket.connection.JocketSessionManager;
 import com.jeedsoft.jocket.endpoint.JocketEndpointRunner;
 import com.jeedsoft.jocket.transport.JocketUpstreamHandler;
 import com.jeedsoft.jocket.util.JocketException;
-import com.jeedsoft.jocket.util.JocketStringUtil;
 import com.jeedsoft.jocket.util.JocketWebSocketUtil;
 
+@ServerEndpoint("/jocket-ws")
 public class JocketWebSocketEndpoint extends Endpoint
 {
 	private static final Logger logger = LoggerFactory.getLogger(JocketWebSocketEndpoint.class);
 	
-	private static String applicationContextPath;
-	
 	@Override
 	public void onOpen(Session wsSession, EndpointConfig endpointConfig)
 	{
+		JocketSession session = null;
 		try {
 			//get session and check status
-			String sessionId = JocketWebSocketUtil.getParameter(wsSession, "jocket_sid");
+			String sessionId = JocketWebSocketUtil.getParameter(wsSession, "s");
 			if (sessionId == null) {
 				String message = "Jocket should be prepared first";
 				JocketWebSocketUtil.close(wsSession, JocketCloseCode.NEED_INIT, message);
 				return;
-				/* TODO
-				String path = wsSession.getRequestURI().toString();
-				if (applicationContextPath != null && path.startsWith(applicationContextPath)) {
-					path = path.substring(applicationContextPath.length());
-				}
-				JocketEndpointConfig config = JocketDeployer.getConfig(path);
-				Map<String, String> parameters = config.getPathParameterMap(path);
-				for (Map.Entry<String, List<String>> entry: wsSession.getRequestParameterMap().entrySet()) {
-					parameters.put(entry.getKey(), entry.getValue().get(0));
-				}
-				JocketSession session = new JocketSession();
-				session.setRequestPath(path);
-				session.setEndpointClassName(config.getEndpointClassName());
-				session.setParameters(parameters);
-				session.setStatus(JocketSession.STATUS_PREPARED);
-				sessionId = JocketSessionManager.add(session);
-				*/
 			}
-			JocketSession session = JocketSessionManager.get(sessionId);
+			session = JocketSessionManager.get(sessionId);
 			if (session == null) {
 				throw new JocketException("Jocket session not found: id=" + sessionId);
 			}
@@ -75,7 +58,8 @@ public class JocketWebSocketEndpoint extends Endpoint
 			}
 		}
 		catch (Exception e) {
-			logger.error("[Jocket] Failed to open WebSocket connection: path=" + getPath(wsSession), e);
+			String path = session == null ? "NULL" : session.getRequestPath();
+			logger.error("[Jocket] Failed to open WebSocket connection: path=" + path, e);
 			JocketWebSocketUtil.close(wsSession, JocketCloseCode.CLOSED_ABNORMALLY, e.getMessage());
 		}
 	}
@@ -92,8 +76,8 @@ public class JocketWebSocketEndpoint extends Endpoint
 			JocketEndpointRunner.doClose(session, new JocketCloseReason(code, message));
 		}
 		if (logger.isDebugEnabled()) {
-			Object[] args = {sessionId, getPath(wsSession)};
-			logger.debug("[Jocket] Jocket closed: transport=websocket, sid={}, path={}", args);
+			String path = session == null ? "NULL" : session.getRequestPath();
+			logger.debug("[Jocket] Jocket closed: transport=websocket, sid={}, path={}", sessionId, path);
 		}
 	}
 
@@ -112,24 +96,6 @@ public class JocketWebSocketEndpoint extends Endpoint
 	{
 		wsSession.getUserProperties().put("jocket_sid", sessionId);
 	}
-	
-	private String getPath(Session wsSession)
-	{
-		String path = wsSession.getRequestURI().toString();
-		if (applicationContextPath != null && path.startsWith(applicationContextPath)) {
-			path = path.substring(applicationContextPath.length());
-		}
-		return path;
-	}
-	
-	/**
-	 * Attention: This method is invoked through reflection in JocketDeployer
-	 */
-	public static void setApplicationContextPath(String contextPath)
-	{
-		applicationContextPath = JocketStringUtil.isEmpty(contextPath) ? null : contextPath;
-	}
-	
 
 	private static class JocketWebSocketMessageHandler implements MessageHandler.Whole<String>
 	{

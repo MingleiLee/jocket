@@ -25,7 +25,7 @@ import com.jeedsoft.jocket.util.JocketConstant;
 import com.jeedsoft.jocket.util.JocketException;
 import com.jeedsoft.jocket.util.JocketIoUtil;
 
-@WebServlet(urlPatterns="*.jocket_polling", name="JocketPollingServlet", asyncSupported=true)
+@WebServlet(urlPatterns="/jocket", name="JocketPollingServlet", asyncSupported=true)
 public class JocketPollingServlet extends HttpServlet
 {
 	private static final Logger logger = LoggerFactory.getLogger(JocketPollingServlet.class);
@@ -39,10 +39,10 @@ public class JocketPollingServlet extends HttpServlet
 			JocketIoUtil.writeText(response, "This URL should be opened by Jocket library.");
 			return;
 		}
+		
 		try {
-			String path = request.getServletPath().replaceFirst("\\.jocket_polling.*", "");
-			String sessionId = request.getParameter("jocket_sid");
-			logger.trace("[Jocket] Polling start: sid={}, path={}", sessionId, path);
+			String sessionId = request.getParameter("s");
+			logger.trace("[Jocket] Polling start: sid={}", sessionId);
 
 			//get session and check status
 			JocketSession session = JocketSessionManager.get(sessionId);
@@ -96,9 +96,9 @@ public class JocketPollingServlet extends HttpServlet
 			JocketIoUtil.writeText(response, "This URL should be opened by Jocket library.");
 			return;
 		}
-		String sessionId = request.getParameter("jocket_sid");
+		String sessionId = request.getParameter("s");
 		String text = JocketIoUtil.readText(request);
-		JocketUpstreamHandler.handle(sessionId, text);			
+		JocketUpstreamHandler.handle(sessionId, text);
 		JocketIoUtil.writeJson(response, new JSONObject());
 	}
 }

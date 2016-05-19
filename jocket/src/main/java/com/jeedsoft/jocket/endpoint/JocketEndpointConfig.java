@@ -26,7 +26,7 @@ public class JocketEndpointConfig
 	{
 		this.endpointClassName = cls.getName();
 		this.annotationPath = annotation.value();
-		String annoPath = annotation.value();
+		String annoPath = this.annotationPath;
 		String regex = "(/([^/*\\{\\}]+|\\{[^/*\\{\\}]+\\}))+";
 		if (annoPath == null || (!annoPath.equals("/") && !Pattern.matches(regex, annoPath))) {
 			throw new JocketException("Jocket path invalid: [" + annoPath + "]");

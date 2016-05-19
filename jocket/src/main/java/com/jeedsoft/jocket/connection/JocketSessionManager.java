@@ -1,7 +1,6 @@
 package com.jeedsoft.jocket.connection;
 
 import java.util.List;
-import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +28,7 @@ public class JocketSessionManager
 
 	public static String add(JocketSession session)
 	{
-		session.setId(UUID.randomUUID().toString());
+		session.setId(JocketSessionIdGenerator.generate());
 		session.setStartTime(System.currentTimeMillis());
 		store.add(session);
 		return session.getId();

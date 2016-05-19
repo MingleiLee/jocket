@@ -8,11 +8,17 @@ var Jocket = function(url, options)
 	if (url == null || url == "") {
 		throw new Error("The URL should not be empty");
 	}
+	jocket.url = url;
+	var index = url.indexOf("?");
+	var path = index == -1 ? url : url.substring(0, index);
+	var args = index == -1 ? null : url.substring(index + 1);
 	if (/^http(s?):/.test(url)) {
-		jocket.url = url;
+		jocket._prepareUrl = path + ".jocket" + (args == null ? "" : "?" + args);
 	}
 	else {
-		jocket.url = location.href.replace(/[\\?#].*/, "").replace(/[^\/]+$/, "") + url.replace(/^\/+/, "");
+		var dir = location.href.replace(/[\?#].*/, "").replace(/[^\/]+$/, "");
+		var prepareUrl = dir + "prepare.jocket?jocket_path=" + encodeURIComponent(path);
+		jocket._prepareUrl = prepareUrl + (args == null ? "" : "&" + args);
 	}
 	jocket.options = options || {};
 	jocket._transport = null;
@@ -23,7 +29,7 @@ var Jocket = function(url, options)
 	}
 };
 
-Jocket.prototype.send = function(name, data)
+Jocket.prototype.send = function(data, name)
 {
 	var jocket = this;
 	var packet = {type:Jocket.PACKET_TYPE_MESSAGE};
@@ -52,7 +58,8 @@ Jocket.prototype.open = function()
 {
 	var jocket = this;
 	var ajax = new Jocket.Ajax();
-	ajax.url = jocket.url.replace(/\?.*/, "") + ".jocket_prepare" + jocket.url.replace(/[^\?]+/, "");
+	ajax.url = jocket._prepareUrl;
+	ajax.timeParamName = "jocket_time";
 	ajax.onsuccess = Jocket.doPrepareSuccess;
 	ajax.onfailure = Jocket.doPrepareFailure;
 	ajax.jocket = jocket;
@@ -86,38 +93,35 @@ Jocket.prototype.on = Jocket.prototype.addEventListener = function(name, listene
 Jocket.prototype._processDownstreamPacket = function(packet)
 {
 	var jocket = this;
+	var data = packet.data == null ? null : JSON.parse(packet.data);
 	if (packet.type == Jocket.PACKET_TYPE_PONG) {
-		if (jocket._transport != null) {
-			var handshakeTimer = jocket._transport.timers.handshake;
-			if (handshakeTimer != null) {
-				Jocket._log("[Jocket] Session opened: sid=%s, transport=%s", jocket.sessionId, jocket._transportName);
-				clearTimeout(handshakeTimer);
-				delete jocket._transport.timers.handshake;
-				jocket.sendPacket({type:Jocket.PACKET_TYPE_OPEN});
-				jocket._fire(Jocket.EVENT_OPEN);
-			}
-			else {
-				//TODO
-			}
+		var handshakeTimer = jocket._transport.timers.handshake;
+		if (handshakeTimer != null) {
+			Jocket._log("[Jocket] Session opened: sid=%s, transport=%s", jocket.sessionId, jocket._transportName);
+			clearTimeout(handshakeTimer);
+			delete jocket._transport.timers.handshake;
+			jocket.sendPacket({type:Jocket.PACKET_TYPE_OPEN});
+			jocket._fire(Jocket.EVENT_OPEN);
+		}
+		else {
+			//TODO
 		}
 	}
 	else if (packet.type == Jocket.PACKET_TYPE_CLOSE) {
-		if (jocket._transport != null) {
-			jocket._transport.destroy();
-		}
+		jocket._transport.destroy();
+		jocket._fire(Jocket.EVENT_CLOSE, data);
 	}
 	else if (packet.type == null || packet.type == Jocket.PACKET_TYPE_MESSAGE) {
-		var data = packet.data == null ? null : JSON.parse(packet.data);
 		jocket._fire(Jocket.PACKET_TYPE_MESSAGE, data, packet.name);
 	}
 };
 
-Jocket.prototype._fire = function(type)
+Jocket.prototype._fire = function(name)
 {
 	var jocket = this;
-	var listeners = jocket._listeners[type];
-	if (type in jocket._listeners) {
-		var listeners = jocket._listeners[type].slice(0);
+	var listeners = jocket._listeners[name];
+	if (name in jocket._listeners) {
+		var listeners = jocket._listeners[name].slice(0);
 		var args = Array.prototype.slice.call(arguments, 1);
 		for (var i = 0; i < listeners.length; ++i) {
 			listeners[i].apply(jocket, args);
@@ -131,7 +135,7 @@ Jocket.prototype._tryNextTransport = function()
 	++jocket._transportTryIndex;
 	if (jocket._transportTryIndex >= jocket._transports.length) {
 		console.error("[Jocket] All transports failed.");
-		var ajax = new Jocket.Ajax(Jocket.Polling.getUrl(jocket));
+		var ajax = new Jocket.Ajax(jocket.getPollingUrl());
 		ajax.submit({type:Jocket.PACKET_TYPE_CLOSE});
 		if (jocket._isFirstConnection || !jocket.options.autoReconnect) {
 			var data = {code:Jocket.CLOSE_CONNECT_FAILED, message:"Failed to make Jocket connection."};
@@ -159,12 +163,27 @@ Jocket.prototype._sendPing = function()
 	jocket.sendPacket({type:Jocket.PACKET_TYPE_PING});
 };
 
+Jocket.prototype._getPollingUrl = function()
+{
+	return this._rootUrl + "jocket?s=" + this.sessionId;
+};
+
+Jocket.prototype._getWebSocketUrl = function()
+{
+	return this._rootUrl.replace(/^http/, "ws") + "jocket-ws?s=" + this.sessionId;
+};
+
 Jocket.doPrepareSuccess = function(response)
 {
 	Jocket._log("[Jocket] Session prepared: sid=%s", response.sessionId);
 	var jocket = this.jocket;
 	jocket.sessionId = response.sessionId;
 	jocket._transports = response.transports;
+	var url = jocket._prepareUrl.replace(/\.jocket.*/, "");
+	for (var i = 0; i < response.pathDepth; ++i) {
+		url = url.replace(/\/[^\/]*$/, ""); 
+	}
+	jocket._rootUrl = url + "/";
 	jocket._handshakeTimeout = jocket.options.handshakeTimeout || response.handshakeTimeout || 3000;
 	jocket._transportTryIndex = -1;
 	jocket._tryNextTransport();
@@ -198,9 +217,8 @@ Jocket.PACKET_TYPE_MESSAGE = "message";
 Jocket.CLOSE_NORMAL         = 1000; //normal closure
 Jocket.CLOSE_AWAY           = 1001; //close browser or reload page
 Jocket.CLOSE_ABNORMAL       = 1006; //network error
-Jocket.CLOSE_NEED_INIT      = 3600; //no jocket_sid passed to server
-Jocket.CLOSE_NO_SESSION     = 3601; //the Jocket session specified by jocket_sid is not found
-Jocket.CLOSE_INIT_FAILED    = 3602; //failed to open *.jocket_prepare
+Jocket.CLOSE_NO_SESSION     = 3601; //the Jocket session is not found
+Jocket.CLOSE_INIT_FAILED    = 3602; //failed to create session
 Jocket.CLOSE_CONNECT_FAILED = 3603; //all available transports failed
 
 Jocket.EVENT_OPEN   = "open";
@@ -218,7 +236,6 @@ Jocket.Ws = Jocket._transportClasses["websocket"] = function(jocket)
 	var ws = this;
 	ws.jocket = jocket;
 	jocket._transport = ws;
-	ws.url = jocket.url.replace(/^http/, "ws").replace(/\?.*/, "") + "?jocket_sid=" + jocket.sessionId;
 	ws.timers = {};
 	ws.open();
 };
@@ -227,7 +244,7 @@ Jocket.Ws.prototype.open = function()
 {
 	var ws = this;
 	var jocket = ws.jocket;
-	ws.webSocket = new WebSocket(ws.url);
+	ws.webSocket = new WebSocket(jocket._getWebSocketUrl());
 	ws.webSocket.ws = ws;
 	ws.webSocket.onopen = Jocket.Ws.doWebSocketOpen;
 	ws.webSocket.onclose = Jocket.Ws.doWebSocketClose;
@@ -274,8 +291,9 @@ Jocket.Ws.doWebSocketClose = function(event)
 	Jocket._log("[Jocket] WebSocket closed: event=%o", event);
 	var ws = this.ws;
 	var jocket = ws.jocket;
+	var isHandshaking = ws.timers.handshake != null;
 	ws.destroy();
-	if (ws.timers.handshake != null) {
+	if (isHandshaking) {
 		jocket._tryNextTransport();
 		return;
 	}
@@ -308,7 +326,7 @@ Jocket.Polling = Jocket._transportClasses["polling"] = function(jocket)
 	var polling = this;
 	polling.jocket = jocket;
 	jocket._transport = polling;
-	polling.url = Jocket.Polling.getUrl(jocket);
+	polling.url = jocket._getPollingUrl();
 	polling.timers = {};
 	polling.poll();
 	jocket._sendPing();
@@ -359,16 +377,11 @@ Jocket.Polling.prototype.sendPacket = function(packet)
 	ajax.submit(packet);
 };
 
-Jocket.Polling.getUrl = function(jocket)
-{
-	return jocket.url.replace(/\?.*/, "") + ".jocket_polling?jocket_sid=" + jocket.sessionId;	
-};
-
 Jocket.Polling.doSuccess = function(packet)
 {
-	Jocket._log("[Jocket] Packet received: transport=polling, data=%o", packet);
 	var polling = this.polling;
 	var jocket = polling.jocket;
+	Jocket._log("[Jocket] Packet received: sid=%s, transport=polling, data=%o", jocket.sessionId, packet);
 	polling.ajax = null;
 	if (packet.type == Jocket.PACKET_TYPE_CLOSE) {
 		jocket._processDownstreamPacket(packet);
@@ -392,6 +405,35 @@ Jocket.Polling.doSendPacketFailure = function(event, status)
 	var jocket = polling.jocket;
 	console.error("[Jocket] Packet send failed: sid=%s, event=%o, status=%d", jocket.sessionId, event, status);
 	jocket._fire(Jocket.EVENT_ERROR, event);
+};
+
+//-----------------------------------------------------------------------
+// Utility
+//-----------------------------------------------------------------------
+
+Jocket.ZipTime =
+{
+	digits: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_".split(""),
+
+	serial: 0,
+	
+	previous: null,
+	
+	now: function()
+	{
+		var time = "";
+		var millis = new Date().getTime();
+		while (millis != 0) {
+			time = Jocket.ZipTime.digits[millis & 0x3F] + time;
+			millis >>>= 6;
+		}
+		if (time != Jocket.ZipTime.previous) {
+			Jocket.ZipTime.previous = time;
+			Jocket.ZipTime.serial = 0;
+			return time;
+		}
+		return time + "." + Jocket.ZipTime.serial++;
+	}
 };
 
 //-----------------------------------------------------------------------
@@ -452,8 +494,9 @@ Jocket.Ajax._parseXmlHttpRequestResponse = function(xhr, status)
 			console.error("[Jocket] Invalid JSON format. url=%s, response=%s", ajax.url, text);
 		}
 	}
-	else if (status != Jocket.Ajax.STATUS_ABORT) {
-		console.error("[Jocket] AJAX failed. url=%s, status=%d, http status=%d", ajax.url, status, xhr.status);
+	//else if (status != Jocket.Ajax.STATUS_ABORT) {
+	else {
+		console.error("[Jocket] AJAX failed. url=%s, status=%d, httpstatus=%d", ajax.url, status, xhr.status);
 	}
 	return result;
 };
@@ -471,9 +514,8 @@ Jocket.Ajax.prototype =
 		xhr.onabort = Jocket.Ajax.doAbort;
 		xhr.ontimeout = Jocket.Ajax.doTimeout;
 		var url = ajax.url;
-		if (ajax.cache != true) {
-			url += (url.indexOf("?") == -1 ? "?" : "&") + "jocket_rnd=" + new Date().getTime() + Math.random();
-		}
+		var timeParamName = ajax.timeParamName || "t";
+		url += (url.indexOf("?") == -1 ? "?" : "&") + timeParamName + "=" + Jocket.ZipTime.now();
 		xhr.open(data == null ? "GET" : "POST", url, true);
 		xhr.setRequestHeader("Cache-Control", "no-store, no-cache");
 		if (ajax.timeout != null) {
