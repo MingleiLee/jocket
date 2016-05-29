@@ -6,7 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.jeedsoft.jocket.message.JocketPacket;
-import com.jeedsoft.jocket.message.JocketQueueManager;
+import com.jeedsoft.jocket.transport.polling.JocketPollingConnection;
 
 public abstract class JocketConnection
 {
@@ -49,8 +49,14 @@ public abstract class JocketConnection
 	public void onEvent(JocketPacket event)
 	{
 		String type = event.getType();
-		if (JocketPacket.TYPE_OPEN.equals(type)) {
-			JocketQueueManager.addSubscriber(this);
+		if (JocketPacket.TYPE_PING.equals(type)) {
+			try {
+				session.setHeartbeating(false);
+				downstream(new JocketPacket(JocketPacket.TYPE_PONG));
+			}
+			catch (IOException e) {
+				logger.error("[Jocket] Failed to send PONG to client: sid=" + getSessionId(), e);
+			}
 		}
 		else if (JocketPacket.TYPE_CLOSE.equals(type)) {
 			try {
@@ -63,12 +69,9 @@ public abstract class JocketConnection
 				logger.error("[Jocket] Failed to close connection: sid=" + getSessionId(), e);
 			}
 		}
-		else if (JocketPacket.TYPE_PING.equals(type)) {
-			try {
-				downstream(new JocketPacket(JocketPacket.TYPE_PONG));
-			}
-			catch (IOException e) {
-				logger.error("[Jocket] Failed to send PONG to client: sid=" + getSessionId(), e);
+		else if (JocketPacket.TYPE_UPGRADE.equals(type)) {
+			if (this instanceof JocketPollingConnection) {
+				((JocketPollingConnection)this).closeOnUpgrade();
 			}
 		}
 	}

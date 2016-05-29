@@ -67,6 +67,16 @@ public class JocketPollingConnection extends JocketConnection
 		}
 	}
 
+	public void closeOnUpgrade()
+	{
+		try {
+			downstream(new JocketPacket(JocketPacket.TYPE_NOOP));
+		}
+		catch (Throwable e) {
+			logger.error("[Jocket] Failed to close polling connection on upgrade. sid={}", getSessionId());
+		}
+	}
+
 	@Override
 	public void close(JocketCloseReason reason) throws IOException
 	{

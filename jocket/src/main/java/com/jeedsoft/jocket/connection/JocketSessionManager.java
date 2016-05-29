@@ -24,6 +24,7 @@ public class JocketSessionManager
 	public static void setStore(JocketSessionStore store)
 	{
 		JocketSessionManager.store = store;
+		logger.debug("[Jocket] Session store class: {}", store.getClass().getName());
 	}
 
 	public static String add(JocketSession session)
@@ -63,20 +64,6 @@ public class JocketSessionManager
 	public static boolean applySchedule()
 	{
 		return store.applySchedule();
-	}
-
-	public static void open(String id)
-	{
-		JocketSession session = store.get(id);
-		if (session != null) {
-			session.setStatus(JocketSession.STATUS_OPEN);
-			JocketQueueManager.publishEvent(id, new JocketPacket(JocketPacket.TYPE_OPEN));
-			JocketEndpointRunner.doOpen(session);
-			if (logger.isDebugEnabled()) {
-				Object[] args = {id, session.getTransport(), session.getRequestPath()};
-				logger.debug("[Jocket] Jocket opened: sid={}, transport={}, path={}", args);
-			}
-		}
 	}
 
 	public static void close(String id, JocketCloseReason reason, boolean post)

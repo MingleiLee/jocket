@@ -3,20 +3,23 @@ package com.jeedsoft.jocket.connection;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.jeedsoft.jocket.JocketService;
 import com.jeedsoft.jocket.endpoint.JocketDeployer;
 import com.jeedsoft.jocket.endpoint.JocketEndpoint;
 import com.jeedsoft.jocket.message.JocketPacket;
 import com.jeedsoft.jocket.message.JocketQueueManager;
-import com.jeedsoft.jocket.util.JocketConstant;
 
 public class JocketSession
 {
-	public static final String STATUS_NEW		= "new";
-	public static final String STATUS_OPEN		= "open";
-	public static final String STATUS_CLOSED	= "closed";
-
-	public static final String TRANSPORT_WEBSOCKET	= "websocket";
-	public static final String TRANSPORT_POLLING	= "polling";
+	private static final Logger logger = LoggerFactory.getLogger(JocketSession.class);
+	
+	public static final String STATUS_NEW			= "new";
+	public static final String STATUS_HANDSHAKING	= "handshaking";
+	public static final String STATUS_ACTIVE		= "active";
+	public static final String STATUS_CLOSED		= "closed";
 	
 	protected String id;
 
@@ -25,14 +28,14 @@ public class JocketSession
 	private String httpSessionId;
 	
 	private String endpointClassName;
-	
-	private String transport;
 
 	private String status;
 	
+	private boolean upgraded;
+	
 	private boolean connected;
 
-	private boolean waitingHeartbeat;
+	private boolean heartbeating;
 	
 	private long startTime;
 
@@ -99,32 +102,28 @@ public class JocketSession
 		this.httpSessionId = httpSessionId;
 	}
 
-	public String getTransport()
-	{
-		return transport;
-	}
-
-	public void setTransport(String transport)
-	{
-		this.transport = transport;
-	}
-
 	public String getStatus()
 	{
 		return status;
 	}
 
-	public boolean isOpen()
-	{
-		return STATUS_OPEN.equals(getStatus());
-	}
-
 	public void setStatus(String status)
 	{
+		logger.trace("[Jocket] Set status: sid={}, value={}", id, status);
 		this.status = status;
 		if (STATUS_CLOSED.equals(status)) {
 			this.closeTime = System.currentTimeMillis();
 		}
+	}
+
+	public boolean isUpgraded()
+	{
+		return upgraded;
+	}
+
+	public void setUpgraded(boolean upgraded)
+	{
+		this.upgraded = upgraded;
 	}
 
 	public boolean isConnected()
@@ -137,14 +136,15 @@ public class JocketSession
 		this.connected = connected;
 	}
 
-	public boolean isWaitingHeartbeat()
+	public boolean isHeartbeating()
 	{
-		return waitingHeartbeat;
+		return heartbeating;
 	}
 
-	public void setWaitingHeartbeat(boolean waitingHeartbeat)
+	public void setHeartbeating(boolean heartbeating)
 	{
-		this.waitingHeartbeat = waitingHeartbeat;
+		logger.trace("[Jocket] Set heartbeating: sid={}, value={}", id, heartbeating);
+		this.heartbeating = heartbeating;
 	}
 
 	public long getStartTime()
@@ -255,13 +255,7 @@ public class JocketSession
 	public boolean isBroken()
 	{
 		//TODO check closed sessions
-		long brokenMillis; 
-		if (TRANSPORT_WEBSOCKET.equals(getTransport())) {
-			brokenMillis = JocketConstant.HEARTBEAT_INTERVAL + 20_000;
-		}
-		else {
-			brokenMillis = JocketConstant.POLLING_INTERVAL + 20_000;
-		}
+		long brokenMillis = JocketService.getPingInterval() + JocketService.getPingTimeout();
 		long heartbeatTime = Math.max(getLastHeartbeatTime(), getStartTime());
 		return heartbeatTime + brokenMillis < System.currentTimeMillis();
 	}

@@ -23,9 +23,7 @@ public class JocketRedisQueue extends JocketAbstractQueue
 	@Override
 	public void removeSubscriber(String sessionId, boolean clearQueue)
 	{
-		synchronized(subscribers) {
-			subscribers.remove(sessionId);
-		}
+		removeSubscriber(sessionId);
 		if (clearQueue) {
 			String key = getKey(sessionId);
 			JocketRedisExecutor.del(key);

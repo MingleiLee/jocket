@@ -20,11 +20,25 @@ public abstract class JocketAbstractQueue implements JocketQueue
 	@Override
 	public void addSubscriber(JocketConnection cn)
 	{
+		if (logger.isTraceEnabled()) {
+			logger.trace("[Jocket] Add subscriber: sid={}, cn={}", cn.getSessionId(), cn.getClass().getName());
+		}
 		String sessionId = cn.getSessionId();
 		synchronized(subscribers) {
 			subscribers.put(sessionId, cn);
 		}
 		notifyNewMessage(sessionId);
+	}
+
+	protected void removeSubscriber(String sessionId)
+	{
+		synchronized(subscribers) {
+			JocketConnection cn = subscribers.remove(sessionId);
+			if (logger.isTraceEnabled()) {
+				String className = cn == null ? "NULL" : cn.getClass().getName();
+				logger.trace("[Jocket] Remove subscriber: sid={}, cn={}", sessionId, className);
+			}
+		}
 	}
 
 	protected JocketConnection getSubscriber(String sessionId)
@@ -84,7 +98,8 @@ public abstract class JocketAbstractQueue implements JocketQueue
 							cn.downstream(packet);
 						}
 						catch (Throwable e) {
-							logger.error("[Jocket] Failed to send message: sid={}, packet={}", cn.getSessionId(), packet);
+							String msg = "[Jocket] Failed to send message: sid=" + sessionId + ", packet=" + packet;
+							logger.error(msg, e);
 						}
 						if (cn.isLongTime()) {
 							queue.notifyNewMessage(sessionId);

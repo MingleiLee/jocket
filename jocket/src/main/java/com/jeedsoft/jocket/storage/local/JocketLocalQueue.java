@@ -33,9 +33,7 @@ public class JocketLocalQueue extends JocketAbstractQueue
 	@Override
 	public void removeSubscriber(String sessionId, boolean clearQueue)
 	{
-		synchronized(subscribers) {
-			subscribers.remove(sessionId);
-		}
+		removeSubscriber(sessionId);
 		if (clearQueue) {
 			synchronized(queues) {
 				queues.remove(sessionId);

@@ -24,10 +24,10 @@ public class JocketRedisSession extends JocketSession
 	private static final String KEY_REQUEST_PATH		= "requestPath";
 	private static final String KEY_ENDPOINT_CLASS		= "endpointClass";
 	private static final String KEY_HTTP_SESSION_ID		= "httpSessionId";
-	private static final String KEY_TRANSPORT			= "transport";
 	private static final String KEY_STATUS				= "status";
+	private static final String KEY_UPGRADED			= "upgraded";
 	private static final String KEY_CONNECTED			= "connected";
-	private static final String KEY_WAITING_HEARTBEAT	= "waitingHeartbeat";
+	private static final String KEY_HEARTBEATING		= "heartbeating";
 	private static final String KEY_START_TIME			= "startTime";
 	private static final String KEY_CLOSE_TIME			= "closeTime";
 	private static final String KEY_LAST_HEARTBEAT_TIME	= "lastHeartbeatTime";
@@ -35,18 +35,6 @@ public class JocketRedisSession extends JocketSession
 	private static final String KEY_TIMEOUT_SECONDS		= "timeoutSeconds";
 	private static final String KEY_PARAMETERS			= "parameters";
 	private static final String KEY_CLOSE_REASON		= "closeReason";
-
-	@Override
-	public String getTransport()
-	{
-		return store.getBaseData(id, KEY_TRANSPORT);
-	}
-
-	@Override
-	public void setTransport(String transport)
-	{
-		store.setBaseData(id, KEY_TRANSPORT, transport);
-	}
 
 	@Override
 	public String getStatus()
@@ -57,11 +45,23 @@ public class JocketRedisSession extends JocketSession
 	@Override
 	public void setStatus(String status)
 	{
-		logger.trace("[Jocket] set session status: sid={}, status={}", id, status);
+		logger.trace("[Jocket] Set status: sid={}, value={}", id, status);
 		store.setBaseData(id, KEY_STATUS, status);
 		if (STATUS_CLOSED.equals(status)) {
 			store.setBaseData(id, KEY_CLOSE_TIME, System.currentTimeMillis() + "");
 		}
+	}
+	
+	@Override
+	public boolean isUpgraded()
+	{
+		return Boolean.parseBoolean(store.getBaseData(id, KEY_UPGRADED));
+	}
+
+	@Override
+	public void setUpgraded(boolean upgraded)
+	{
+		store.setBaseData(id, KEY_UPGRADED, Boolean.toString(upgraded));
 	}
 
 	@Override
@@ -77,15 +77,16 @@ public class JocketRedisSession extends JocketSession
 	}
 
 	@Override
-	public boolean isWaitingHeartbeat()
+	public boolean isHeartbeating()
 	{
-		return Boolean.parseBoolean(store.getBaseData(id, KEY_WAITING_HEARTBEAT));
+		return Boolean.parseBoolean(store.getBaseData(id, KEY_HEARTBEATING));
 	}
 
 	@Override
-	public void setWaitingHeartbeat(boolean waitingHeartbeat)
+	public void setHeartbeating(boolean heartbeating)
 	{
-		store.setBaseData(id, KEY_WAITING_HEARTBEAT, Boolean.toString(waitingHeartbeat));
+		logger.trace("[Jocket] Set heartbeating: sid={}, value={}", id, heartbeating);
+		store.setBaseData(id, KEY_HEARTBEATING, Boolean.toString(heartbeating));
 	}
 
 	@Override
@@ -179,10 +180,10 @@ public class JocketRedisSession extends JocketSession
 		session.setRequestPath(baseData.get(KEY_REQUEST_PATH));
 		session.setEndpointClassName(baseData.get(KEY_ENDPOINT_CLASS));
 		session.setHttpSessionId(baseData.get(KEY_HTTP_SESSION_ID));
-		session.setTransport(baseData.get(KEY_TRANSPORT));
 		session.setStatus(baseData.get(KEY_STATUS));
-		session.setConnected("true".equals(baseData.get(KEY_CONNECTED)));
-		session.setWaitingHeartbeat("true".equals(baseData.get(KEY_WAITING_HEARTBEAT)));
+		session.setUpgraded(Boolean.parseBoolean(baseData.get(KEY_UPGRADED)));
+		session.setConnected(Boolean.parseBoolean(baseData.get(KEY_CONNECTED)));
+		session.setHeartbeating(Boolean.parseBoolean(baseData.get(KEY_HEARTBEATING)));
 		session.setStartTime(Long.parseLong(baseData.get(KEY_START_TIME)));
 		session.setCloseTime(Long.parseLong(baseData.get(KEY_CLOSE_TIME)));
 		session.setLastHeartbeatTime(Long.parseLong(baseData.get(KEY_LAST_HEARTBEAT_TIME)));
@@ -202,10 +203,10 @@ public class JocketRedisSession extends JocketSession
 		put(map, KEY_REQUEST_PATH, session.getRequestPath());
 		put(map, KEY_ENDPOINT_CLASS, session.getEndpointClassName());
 		put(map, KEY_HTTP_SESSION_ID, session.getHttpSessionId());
-		put(map, KEY_TRANSPORT, session.getTransport());
 		put(map, KEY_STATUS, session.getStatus());
+		put(map, KEY_UPGRADED, session.isUpgraded());
 		put(map, KEY_CONNECTED, session.isConnected());
-		put(map, KEY_WAITING_HEARTBEAT, session.isWaitingHeartbeat());
+		put(map, KEY_HEARTBEATING, session.isHeartbeating());
 		put(map, KEY_START_TIME, session.getStartTime(), df);
 		put(map, KEY_CLOSE_TIME, session.getCloseTime(), df);
 		put(map, KEY_LAST_HEARTBEAT_TIME, session.getLastHeartbeatTime(), df);

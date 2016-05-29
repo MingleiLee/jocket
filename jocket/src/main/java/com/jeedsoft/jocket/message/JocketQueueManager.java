@@ -1,5 +1,8 @@
 package com.jeedsoft.jocket.message;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.jeedsoft.jocket.connection.JocketConnection;
 import com.jeedsoft.jocket.connection.JocketSession;
 import com.jeedsoft.jocket.connection.JocketSessionManager;
@@ -7,6 +10,8 @@ import com.jeedsoft.jocket.storage.local.JocketLocalQueue;
 
 public class JocketQueueManager
 {
+	private static final Logger logger = LoggerFactory.getLogger(JocketQueueManager.class);
+
 	private static JocketQueue queue = new JocketLocalQueue();
 
 	public static JocketQueue getQueue()
@@ -17,6 +22,7 @@ public class JocketQueueManager
 	public static void setQueue(JocketQueue queue)
 	{
 		JocketQueueManager.queue = queue;
+		logger.debug("[Jocket] Queue class: {}", queue.getClass().getName());
 	}
 
 	public static void start()

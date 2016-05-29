@@ -53,7 +53,7 @@ public class JocketCleaner
 			List<JocketSession> brokenSessions = JocketSessionManager.checkStore();
 			for (JocketSession session: brokenSessions) {
 				JocketQueueManager.removeSubscriber(session.getId(), true);
-				int code = JocketCloseCode.CLOSED_ABNORMALLY;
+				int code = JocketCloseCode.NO_HEARTBEAT;
 				JocketCloseReason reason = new JocketCloseReason(code, "no new polling");
 				JocketEndpointRunner.doClose(session, reason);
 			}

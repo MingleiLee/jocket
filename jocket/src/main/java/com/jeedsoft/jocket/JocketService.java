@@ -1,8 +1,5 @@
 package com.jeedsoft.jocket;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import javax.servlet.ServletContext;
 
 import org.slf4j.Logger;
@@ -21,10 +18,27 @@ public class JocketService
 {
 	private static final Logger logger = LoggerFactory.getLogger(JocketService.class);
 
+	/**
+	 * Whether WebSocket is enabled. If enabled, the client will try to use (upgrade to) WebSocket.
+	 * If not, the client will use polling only.
+	 */
+	private static boolean isWebSocketEnabled = true;
+
+	/**
+	 * The ping interval (milliseconds)
+	 */
+	private static int pingInterval = 25000;
+
+	/**
+	 * The timeout (milliseconds) after last ping packet sent
+	 */
+	private static int pingTimeout = 20000;
+
+	/**
+	 * Whether the Jocket service is running
+	 */
 	private static boolean isRunning = false;
 
-	private static String[] transports = {"websocket", "polling"};
-	
 	/**
 	 * Start the Jocket service
 	 * 
@@ -70,26 +84,40 @@ public class JocketService
 	{
 		JocketQueueManager.setQueue(queue);
 	}
-	
-	public static String[] getTransports()
+
+	public static int getPingInterval()
 	{
-		return transports;
+		return pingInterval;
 	}
 
-	public static void setTransports(String[] transports)
+	public static void setPingInterval(int pingInterval)
 	{
-		if (transports == null || transports.length == 0) {
-			throw new IllegalArgumentException("transports cannot be empty");
-		}
-		Set<String> validTransports = new HashSet<>();
-		validTransports.add("websocket");
-		validTransports.add("polling");
-		for (String transport: transports) {
-			if (!validTransports.contains(transport)) {
-				throw new IllegalArgumentException("invalid transport: " + transport);
-			}
-		}
-		JocketService.transports = transports;
+		JocketService.pingInterval = pingInterval;
+	}
+
+	public static int getPingTimeout()
+	{
+		return pingTimeout;
+	}
+
+	public static void setPingTimeout(int pingTimeout)
+	{
+		JocketService.pingTimeout = pingTimeout;
+	}
+
+	public static int getConnectionTimeout()
+	{
+		return pingInterval + pingTimeout + 5000; //extra 5 seconds
+	}
+
+	public static boolean isWebSocketEnabled()
+	{
+		return isWebSocketEnabled;
+	}
+
+	public static void setWebSocketEnabled(boolean isWebSocketEnabled)
+	{
+		JocketService.isWebSocketEnabled = isWebSocketEnabled;
 	}
 
 	public static boolean isRunning()

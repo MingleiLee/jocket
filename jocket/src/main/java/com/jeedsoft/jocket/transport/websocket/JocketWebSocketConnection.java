@@ -48,6 +48,9 @@ public class JocketWebSocketConnection extends JocketConnection
 			logger.debug("[Jocket] Send message to client: sid={}, packet={}", getSessionId(), packet);
 			wsSession.getAsyncRemote().sendText(packet.toJson().toString());
 		}
+		else {
+			logger.warn("[Jocket] WebSocket connection is closed: sid={}, packet={}", getSessionId(), packet);
+		}
 	}
 
 	@Override

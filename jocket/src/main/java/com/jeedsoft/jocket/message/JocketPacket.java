@@ -8,12 +8,12 @@ public class JocketPacket implements Serializable
 {
 	private static final long serialVersionUID = 1L;
 	
-	public static final String TYPE_OPEN	= "open";
 	public static final String TYPE_CLOSE	= "close";
 	public static final String TYPE_PING	= "ping";
 	public static final String TYPE_PONG	= "pong";
 	public static final String TYPE_NOOP	= "noop";
-	public static final String TYPE_MESSAGE	= "message";
+	public static final String TYPE_UPGRADE = "upgrade";
+	public static final String TYPE_MESSAGE = "message";
 	
 	private String type;
 	
@@ -70,7 +70,7 @@ public class JocketPacket implements Serializable
 	public JSONObject toJson()
 	{
 		JSONObject json = new JSONObject();
-		if (type != null && !type.equals(TYPE_MESSAGE)) {
+		if (type != null) {
 			json.put("type", type);
 		}
 		if (name != null) {
@@ -95,7 +95,7 @@ public class JocketPacket implements Serializable
 		}
 		JSONObject json = new JSONObject(text);
 		JocketPacket packet = new JocketPacket();
-		packet.type = json.optString("type", TYPE_MESSAGE);
+		packet.type = json.optString("type", null);
 		packet.name = json.optString("name", null);
 		packet.data = json.optString("data", null);
 		return packet;
