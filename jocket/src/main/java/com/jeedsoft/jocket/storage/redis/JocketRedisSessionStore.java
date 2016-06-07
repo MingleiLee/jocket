@@ -2,11 +2,14 @@ package com.jeedsoft.jocket.storage.redis;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.jeedsoft.jocket.connection.JocketSession;
 import com.jeedsoft.jocket.connection.JocketSessionStore;
+import com.jeedsoft.jocket.util.JocketStringUtil;
 
 public class JocketRedisSessionStore implements JocketSessionStore
 {
@@ -38,6 +41,10 @@ public class JocketRedisSessionStore implements JocketSessionStore
 		if (!baseData.isEmpty() || !attrData.isEmpty()) {
 			JocketRedisExecutor.del(baseKey, attrKey);
 		}
+		if (!JocketStringUtil.isEmpty(session.getUserId())) {
+			String key = getUserKey(session.getUserId());
+			JocketRedisExecutor.srem(key, id);
+		}
 		return session;
 	}
 
@@ -50,33 +57,13 @@ public class JocketRedisSessionStore implements JocketSessionStore
 	}
 
 	@Override
-	public boolean applySchedule()
+	public List<String> getAllSessionIds()
 	{
-		String key = JocketRedisKey.TIMER;
-		String field = JocketRedisKey.FIELD_CLEANER;
-		JocketCasResult<Long> cas = JocketRedisExecutor.hcheckAndIncr(key, field, scheduleSerial);
-		scheduleSerial = cas.getValue();
-		return cas.isSuccess();
-	}
-
-	@Override
-	public synchronized List<JocketSession> checkStore()
-	{
-		List<JocketSession> brokenSessions = new ArrayList<>();
-		String pattern = getBaseKeyPattern();
-		for (String key: JocketRedisExecutor.keys(pattern)) {
-			Map<String, String> map = JocketRedisExecutor.hgetAll(key);
-			if (!map.isEmpty()) {
-				JocketSession session = JocketRedisSession.fromMap(map);
-				if (session.isBroken()) {
-					JocketSession localSession = remove(session.getId());
-					if (localSession != null) {
-						brokenSessions.add(localSession);
-					}
-				}
-			}
+		List<String> list = new ArrayList<>();
+		for (String key: JocketRedisExecutor.keys(getBaseKeyPattern())) {
+			list.add(extractId(key));
 		}
-		return brokenSessions;
+		return list;
 	}
 
 	@Override
@@ -91,6 +78,36 @@ public class JocketRedisSessionStore implements JocketSessionStore
 	{
 		String key = getBaseKey(id);
 		return JocketRedisExecutor.exists(key); //TODO exclude closed sessions?
+	}
+
+	@Override
+	public void updateUserId(String id, String oldUserId, String newUserId)
+	{
+		if (!JocketStringUtil.isEmpty(oldUserId)) {
+			String key = getUserKey(oldUserId);
+			JocketRedisExecutor.srem(key, id);
+		}
+		if (!JocketStringUtil.isEmpty(newUserId)) {
+			String key = getUserKey(oldUserId);
+			JocketRedisExecutor.sadd(key, id);
+		}
+	}
+
+	@Override
+	public List<JocketSession> getUserSessions(String userId)
+	{
+		List<JocketSession> sessions = new ArrayList<>();
+		String key = getUserKey(userId);
+		Set<String> sessionIds = JocketRedisExecutor.smembers(key);
+		if (sessionIds != null) {
+			for (String sessionId: sessionIds) {
+				JocketSession session = get(sessionId);
+				if (session.isOpen()) {
+					sessions.add(session);
+				}
+			}
+		}
+		return sessions;
 	}
 
 	public String getBaseData(String id, String field)
@@ -136,6 +153,49 @@ public class JocketRedisSessionStore implements JocketSessionStore
 		JocketRedisExecutor.hset(key, field, text);
 	}
 
+	@Override
+	public boolean applySchedule()
+	{
+		String key = JocketRedisKey.TIMER;
+		String field = JocketRedisKey.FIELD_CLEANER;
+		JocketCasResult<Long> cas = JocketRedisExecutor.hcheckAndIncr(key, field, scheduleSerial);
+		scheduleSerial = cas.getValue();
+		return cas.isSuccess();
+	}
+
+	@Override
+	public synchronized List<JocketSession> checkStore()
+	{
+		List<JocketSession> brokenSessions = new ArrayList<>();
+		Set<String> sessionIds = new HashSet<>();
+		for (String key: JocketRedisExecutor.keys(getBaseKeyPattern())) {
+			Map<String, String> map = JocketRedisExecutor.hgetAll(key);
+			if (!map.isEmpty()) {
+				JocketSession session = JocketRedisSession.fromMap(map);
+				if (session.isBroken()) {
+					JocketSession localSession = remove(session.getId());
+					if (localSession != null) {
+						brokenSessions.add(localSession);
+					}
+				}
+				else {
+					sessionIds.add(session.getId());
+				}
+			}
+		}
+		for (String key: JocketRedisExecutor.keys(getUserKeyPattern())) {
+			Set<String> set = JocketRedisExecutor.smembers(key);
+			if (set != null) {
+				for (String sessionId: set) {
+					if (!sessionIds.contains(sessionId)) {
+						JocketRedisExecutor.srem(key, sessionId);
+					}
+				}
+			}
+		}
+		return brokenSessions;
+	}
+
 	private String getBaseKey(String id)
 	{
 		return JocketRedisKey.PREFIX_SESSION + ":" + id + ":" + JocketRedisKey.POSTFIX_BASE;
@@ -145,9 +205,26 @@ public class JocketRedisSessionStore implements JocketSessionStore
 	{
 		return JocketRedisKey.PREFIX_SESSION + ":" + id + ":" + JocketRedisKey.POSTFIX_ATTR;
 	}
-	
+
+	private String getUserKey(String userId)
+	{
+		return JocketRedisKey.PREFIX_USER + ":" + userId;
+	}
+
 	private String getBaseKeyPattern()
 	{
 		return JocketRedisKey.PREFIX_SESSION + ":*:" + JocketRedisKey.POSTFIX_BASE;
+	}
+
+	private String getUserKeyPattern()
+	{
+		return JocketRedisKey.PREFIX_USER + ":*";
+	}
+
+	private String extractId(String baseKey)
+	{
+		int end = baseKey.lastIndexOf(':');
+		int start = baseKey.lastIndexOf(':', end - 1) + 1;
+		return baseKey.substring(start, end);
 	}
 }

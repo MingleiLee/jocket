@@ -48,11 +48,16 @@ public class JocketQueueManager
 	public static void publishMessage(String sessionId, JocketPacket message)
 	{
 		JocketSession session = JocketSessionManager.get(sessionId);
-		if (session != null) {
+		publishMessage(session, message);
+	}
+
+	public static void publishMessage(JocketSession session, JocketPacket message)
+	{
+		if (session != null && session.isOpen()) {
 			if (JocketPacket.TYPE_MESSAGE.equals(message.getType())) {
 				session.setLastMessageTime(System.currentTimeMillis());
 			}
-			queue.publishMessage(sessionId, message);
+			queue.publishMessage(session.getId(), message);
 		}
 	}
 

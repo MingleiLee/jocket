@@ -6,11 +6,13 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.jeedsoft.jocket.Jocket;
 import com.jeedsoft.jocket.JocketService;
 import com.jeedsoft.jocket.endpoint.JocketDeployer;
 import com.jeedsoft.jocket.endpoint.JocketEndpoint;
 import com.jeedsoft.jocket.message.JocketPacket;
 import com.jeedsoft.jocket.message.JocketQueueManager;
+import com.jeedsoft.jocket.util.JocketStringUtil;
 
 public class JocketSession
 {
@@ -18,9 +20,9 @@ public class JocketSession
 	
 	public static final String STATUS_NEW			= "new";
 	public static final String STATUS_HANDSHAKING	= "handshaking";
-	public static final String STATUS_ACTIVE		= "active";
+	public static final String STATUS_OPEN			= "open";
 	public static final String STATUS_CLOSED		= "closed";
-	
+
 	protected String id;
 
 	private String requestPath;
@@ -28,6 +30,8 @@ public class JocketSession
 	private String httpSessionId;
 	
 	private String endpointClassName;
+	
+	private String userId;
 
 	private String status;
 	
@@ -101,6 +105,20 @@ public class JocketSession
 	{
 		this.httpSessionId = httpSessionId;
 	}
+	
+	public String getUserId()
+	{
+		return userId;
+	}
+
+	public void setUserId(String userId)
+	{
+		if (JocketStringUtil.isEmpty(userId)) {
+			userId = null;
+		}
+		JocketSessionManager.getStore().updateUserId(id, this.userId, userId);
+		this.userId = userId;
+	}
 
 	public String getStatus()
 	{
@@ -114,6 +132,11 @@ public class JocketSession
 		if (STATUS_CLOSED.equals(status)) {
 			this.closeTime = System.currentTimeMillis();
 		}
+	}
+
+	public boolean isOpen()
+	{
+		return STATUS_OPEN.equals(getStatus());
 	}
 
 	public boolean isUpgraded()
@@ -241,15 +264,15 @@ public class JocketSession
 		}
 	}
 
-	public void send(Object data)
-	{
-		send(data, null);
-	}
-
-	public void send(Object data, String name)
+	public void send(String name, Object data)
 	{
 		JocketPacket packet = new JocketPacket(JocketPacket.TYPE_MESSAGE, name, data);
 		JocketQueueManager.publishMessage(id, packet);
+	}
+	
+	public void close(int code, String message)
+	{
+		Jocket.close(id, code, message);
 	}
 	
 	public boolean isBroken()

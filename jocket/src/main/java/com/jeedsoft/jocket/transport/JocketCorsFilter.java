@@ -15,7 +15,6 @@ import javax.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.jeedsoft.jocket.util.JocketIoUtil;
 import com.jeedsoft.jocket.util.JocketStringUtil;
 
 @WebFilter(servletNames={"JocketCreateServlet", "JocketPollingServlet"}, asyncSupported=true)
@@ -49,10 +48,15 @@ public final class JocketCorsFilter implements Filter
 		HttpServletRequest request = (HttpServletRequest)req;
 		HttpServletResponse response = (HttpServletResponse)res;
 		response.setHeader("Cache-Control", "no-store, no-cache");
+		/*
 		if (request.getHeader("Referer") == null) {
-			JocketIoUtil.writeText(response, "This URL should be opened by Jocket library.");
-			return;
+			String corsRequestHeaders = request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS);
+			if (corsRequestHeaders == null || !corsRequestHeaders.toLowerCase().contains("jocket-client")) {
+				JocketIoUtil.writeText(response, "This URL should be opened by Jocket library.");
+				return;
+			}
 		}
+		*/
 		String origin = request.getHeader(REQUEST_HEADER_ORIGIN);
 		if (JocketStringUtil.isEmpty(origin)) {
 			chain.doFilter(request, response);

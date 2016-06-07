@@ -1,5 +1,7 @@
 package com.jeedsoft.jocket.endpoint;
 
+import javax.servlet.http.HttpSession;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,9 +14,9 @@ public class JocketEndpointRunner
 {
 	private static final Logger logger = LoggerFactory.getLogger(JocketEndpointRunner.class);
 	
-	public static void doOpen(JocketSession session)
+	public static void doOpen(JocketSession session, HttpSession httpSession)
 	{
-		new Thread(new OpenRunner(session)).start();
+		new Thread(new OpenRunner(session, httpSession)).start();
 	}
 
 	public static void doClose(JocketSession session, JocketCloseReason reason)
@@ -31,9 +33,12 @@ public class JocketEndpointRunner
 	{
 		private JocketSession session;
 		
-		public OpenRunner(JocketSession session)
+		private HttpSession httpSession;
+		
+		public OpenRunner(JocketSession session, HttpSession httpSession)
 		{
 			this.session = session;
+			this.httpSession = httpSession;
 		}
 
 		public void run()
@@ -45,7 +50,7 @@ public class JocketEndpointRunner
 			}
 			try {
 				JocketEndpoint endpoint = JocketReflection.newInstance(cls);
-				endpoint.onOpen(session);
+				endpoint.onOpen(session, httpSession);
 			}
 			catch (Throwable e) {
 				logger.error("[Jocket] Failed to invoke " + cls.getName() + ".onOpen", e);

@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import com.jeedsoft.jocket.connection.JocketConnection;
 import com.jeedsoft.jocket.connection.JocketConnectionManager;
+import com.jeedsoft.jocket.transport.websocket.JocketWebSocketConnection;
 
 public abstract class JocketAbstractQueue implements JocketQueue
 {
@@ -101,7 +102,7 @@ public abstract class JocketAbstractQueue implements JocketQueue
 							String msg = "[Jocket] Failed to send message: sid=" + sessionId + ", packet=" + packet;
 							logger.error(msg, e);
 						}
-						if (cn.isLongTime()) {
+						if (cn instanceof JocketWebSocketConnection) {
 							queue.notifyNewMessage(sessionId);
 						}
 					}

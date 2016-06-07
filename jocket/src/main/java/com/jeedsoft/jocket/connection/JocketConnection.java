@@ -77,13 +77,6 @@ public abstract class JocketConnection
 	}
 
 	/**
-	 * The connection is long-time or not.
-	 * WebSocket is long-time, long-polling is not.
-	 * @return long-time or not
-	 */
-	public abstract boolean isLongTime();
-
-	/**
 	 * Send downstream message to client
 	 * @param packet The message to be sent
 	 * @throws IOException

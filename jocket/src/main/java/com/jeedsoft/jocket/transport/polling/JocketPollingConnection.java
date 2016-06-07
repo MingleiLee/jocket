@@ -43,12 +43,6 @@ public class JocketPollingConnection extends JocketConnection
 	}
 
 	@Override
-	public boolean isLongTime()
-	{
-		return false;
-	}
-
-	@Override
 	public synchronized void downstream(JocketPacket packet) throws IOException
 	{
 		if (!isActive()) {
@@ -57,7 +51,7 @@ public class JocketPollingConnection extends JocketConnection
 		String sessionId = getSessionId();
 		logger.trace("[Jocket] Polling finished: sid={}, content={}", sessionId, packet);
 		try {
-	        JocketConnectionManager.remove(sessionId); //connection must be removed before write response
+	        JocketConnectionManager.remove(this); //connection must be removed before write response
 	        HttpServletResponse response = (HttpServletResponse)context.getResponse();
 	        JocketIoUtil.writeJson(response, packet.toJson());
 	        context.complete();

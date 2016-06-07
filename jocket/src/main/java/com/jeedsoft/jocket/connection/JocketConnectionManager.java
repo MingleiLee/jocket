@@ -46,6 +46,19 @@ public class JocketConnectionManager
 		return cn;
 	}
 
+	public static synchronized boolean remove(JocketConnection cn)
+	{
+		String sessionId = cn.getSessionId();
+		if (connections.get(sessionId) != cn) {
+			logger.debug("[Jocket] No connection found when removing. sid={}", sessionId);
+			return false;
+		}
+		connections.remove(sessionId);
+		cn.getSession().setConnected(false);
+		JocketQueueManager.removeSubscriber(sessionId, false);
+		return true;
+	}
+
 	public static synchronized JocketWebSocketConnection removeProbing(String sessionId)
 	{
 		JocketWebSocketConnection cn = probingConnections.remove(sessionId);

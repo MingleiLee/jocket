@@ -13,6 +13,7 @@ import com.jeedsoft.jocket.connection.JocketCloseReason;
 import com.jeedsoft.jocket.connection.JocketSession;
 import com.jeedsoft.jocket.connection.JocketSessionManager;
 import com.jeedsoft.jocket.util.JocketJsonUtil;
+import com.jeedsoft.jocket.util.JocketStringUtil;
 
 public class JocketRedisSession extends JocketSession
 {
@@ -24,6 +25,7 @@ public class JocketRedisSession extends JocketSession
 	private static final String KEY_REQUEST_PATH		= "requestPath";
 	private static final String KEY_ENDPOINT_CLASS		= "endpointClass";
 	private static final String KEY_HTTP_SESSION_ID		= "httpSessionId";
+	private static final String KEY_USER_ID				= "userId";
 	private static final String KEY_STATUS				= "status";
 	private static final String KEY_UPGRADED			= "upgraded";
 	private static final String KEY_CONNECTED			= "connected";
@@ -35,6 +37,22 @@ public class JocketRedisSession extends JocketSession
 	private static final String KEY_TIMEOUT_SECONDS		= "timeoutSeconds";
 	private static final String KEY_PARAMETERS			= "parameters";
 	private static final String KEY_CLOSE_REASON		= "closeReason";
+
+	@Override
+	public String getUserId()
+	{
+		return store.getBaseData(id, KEY_USER_ID);
+	}
+
+	@Override
+	public void setUserId(String userId)
+	{
+		if (JocketStringUtil.isEmpty(userId)) {
+			userId = null;
+		}
+		store.updateUserId(id, getUserId(), userId);
+		store.setBaseData(id, KEY_USER_ID, userId);
+	}
 
 	@Override
 	public String getStatus()
@@ -180,6 +198,7 @@ public class JocketRedisSession extends JocketSession
 		session.setRequestPath(baseData.get(KEY_REQUEST_PATH));
 		session.setEndpointClassName(baseData.get(KEY_ENDPOINT_CLASS));
 		session.setHttpSessionId(baseData.get(KEY_HTTP_SESSION_ID));
+		session.setUserId(baseData.get(KEY_USER_ID));
 		session.setStatus(baseData.get(KEY_STATUS));
 		session.setUpgraded(Boolean.parseBoolean(baseData.get(KEY_UPGRADED)));
 		session.setConnected(Boolean.parseBoolean(baseData.get(KEY_CONNECTED)));
@@ -203,6 +222,7 @@ public class JocketRedisSession extends JocketSession
 		put(map, KEY_REQUEST_PATH, session.getRequestPath());
 		put(map, KEY_ENDPOINT_CLASS, session.getEndpointClassName());
 		put(map, KEY_HTTP_SESSION_ID, session.getHttpSessionId());
+		put(map, KEY_USER_ID, session.getUserId());
 		put(map, KEY_STATUS, session.getStatus());
 		put(map, KEY_UPGRADED, session.isUpgraded());
 		put(map, KEY_CONNECTED, session.isConnected());

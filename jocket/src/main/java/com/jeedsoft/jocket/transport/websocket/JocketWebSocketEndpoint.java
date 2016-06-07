@@ -44,7 +44,7 @@ public class JocketWebSocketEndpoint
 				throw new JocketCloseException(JocketCloseCode.SESSION_NOT_FOUND, "Jocket session not found");
 			}
 			String status = session.getStatus();
-			if (!JocketSession.STATUS_ACTIVE.equals(status) && !JocketSession.STATUS_HANDSHAKING.equals(status)) {
+			if (!JocketSession.STATUS_OPEN.equals(status) && !JocketSession.STATUS_HANDSHAKING.equals(status)) {
 				throw new JocketCloseException(JocketCloseCode.INVALID_STATUS, "Invalid status: " + status);
 			}
 			if (session.isUpgraded()) {
@@ -126,6 +126,8 @@ public class JocketWebSocketEndpoint
 		else if (JocketPacket.TYPE_UPGRADE.equals(packet.getType())) {
 			synchronized (cn) {
 				if (cn.isActive()) {
+					logger.debug("[Jocket] Upgrade the transport to WebSocket: sid=" + sessionId);
+					session.setStatus(JocketSession.STATUS_OPEN);
 					JocketConnectionManager.removeProbing(sessionId);
 					JocketPollingConnection pc = (JocketPollingConnection)JocketConnectionManager.remove(sessionId);
 					JocketConnectionManager.add(cn);

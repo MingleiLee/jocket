@@ -36,12 +36,6 @@ public class JocketWebSocketConnection extends JocketConnection
 	}
 
 	@Override
-	public boolean isLongTime()
-	{
-		return true;
-	}
-
-	@Override
 	public synchronized void downstream(JocketPacket packet) throws IOException
 	{
 		if (isActive()) {

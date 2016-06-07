@@ -38,6 +38,27 @@ public class JocketRedisExecutor
 		}
 	}
 
+	public static long sadd(String key, String... members)
+	{
+		try (Jedis jedis = JocketRedisManager.getJedis()) {
+			return jedis.sadd(key, members);
+		}
+	}
+
+	public static long srem(String key, String... members)
+	{
+		try (Jedis jedis = JocketRedisManager.getJedis()) {
+			return jedis.srem(key, members);
+		}
+	}
+
+	public static Set<String> smembers(String key)
+	{
+		try (Jedis jedis = JocketRedisManager.getJedis()) {
+			return jedis.smembers(key);
+		}
+	}
+
 	public static String hget(String key, String field)
 	{
 		try (Jedis jedis = JocketRedisManager.getJedis()) {

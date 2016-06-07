@@ -10,11 +10,17 @@ public interface JocketSessionStore
 
 	JocketSession get(String id);
 
+	List<String> getAllSessionIds();
+
+	boolean contains(String id);
+
+	void updateUserId(String id, String oldUserId, String newUserId);
+
+	List<JocketSession> getUserSessions(String userId);
+	
 	List<JocketSession> checkStore();
 
 	int size();
-
-	boolean contains(String id);
 
 	boolean applySchedule();
 }

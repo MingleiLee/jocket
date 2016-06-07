@@ -71,7 +71,7 @@ public class JocketPollingServlet extends HttpServlet
 	        	session.setStatus(JocketSession.STATUS_HANDSHAKING);
 	        }
 	        else if (JocketSession.STATUS_HANDSHAKING.equals(status)) {
-				session.setStatus(JocketSession.STATUS_ACTIVE);
+				session.setStatus(JocketSession.STATUS_OPEN);
 	        }
 
 	        //return PONG when waiting for heartbeat
@@ -90,11 +90,11 @@ public class JocketPollingServlet extends HttpServlet
 	        context.setTimeout(JocketService.getConnectionTimeout());
 	        synchronized (cn) {
 		        JocketConnectionManager.add(cn);
-		        if (JocketSession.STATUS_ACTIVE.equals(status)) {
+		        if (JocketSession.STATUS_OPEN.equals(status)) {
 		    		JocketQueueManager.addSubscriber(cn);
 		        }
 		        else if (JocketSession.STATUS_HANDSHAKING.equals(status)) {
-					JocketEndpointRunner.doOpen(session);
+					JocketEndpointRunner.doOpen(session, request.getSession());
 		    		JocketQueueManager.addSubscriber(cn);
 					if (logger.isDebugEnabled()) {
 						Object[] args = {sessionId, session.getRequestPath()};

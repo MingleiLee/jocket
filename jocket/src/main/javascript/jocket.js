@@ -39,6 +39,10 @@ var Jocket = function(url, options)
 	}
 	this.status = Jocket.STATUS_NEW;
 	this.options = options || {};
+	this._timers = {};
+	this._reconnectDelay = this.options.reconnectDelay || 1000;
+	this._reconnectDelayMax = this.options.reconnectDelayMax || 20000;
+	this._reconnectCount = 0;
 	this._listeners = {};
 	if (this.options.autoOpen != false) {
 		this.open();
@@ -107,7 +111,7 @@ Jocket.prototype.close = function()
  * @param name [optional] The message name(type). If there are multiple message types, you can either
  *     enclose the type in data, or use the name parameter directly.
  */
-Jocket.prototype.send = function(data, name)
+Jocket.prototype.send = function(name, data)
 {
 	var packet = {type:Jocket.PACKET_TYPE_MESSAGE};
 	if (data != null) {
@@ -146,6 +150,7 @@ Jocket.prototype._close = function(code, message)
 		return;
 	}
 	this.status = Jocket.STATUS_CLOSED;
+	Jocket.util.clearTimers(this);
 	if (this._transport != null) {
 		this._transport.destroy(code, message);
 		delete this._transport;
@@ -156,7 +161,7 @@ Jocket.prototype._close = function(code, message)
 	}
 	this._fire(Jocket.EVENT_CLOSE, {code:code, message:message});
 	this.sessionId = null;
-	if (this.options.reconnect) {
+	if (this.options.reconnect != false) {
 		var codes = {};
 		codes[Jocket.CLOSE_NORMAL] = 1;
 		codes[Jocket.CLOSE_AWAY] = 1;
@@ -191,17 +196,30 @@ Jocket.prototype._sendPacket = function(packet)
 
 Jocket.prototype._reconnect = function()
 {
-	//TODO
+	var jocket = this;
+	++jocket._reconnectCount;
+	var delay = jocket._reconnectDelay;
+	for (var i = 1; i < jocket._reconnectCount; ++i) {
+		delay = Math.min(delay * 2, jocket._reconnectDelayMax);
+		if (delay == jocket._reconnectDelayMax) {
+			break;
+		}
+	}
+	jocket._timers.reconnect = setTimeout(function() {
+		Jocket.logger.debug("Reconnect: count=%d", jocket._reconnectCount);
+		delete jocket._timers.reconnect;
+		jocket.open();
+	}, delay);
 };
 
 Jocket.prototype._upgrade = function()
 {
 	Jocket.logger.debug("Upgrade transport to WebSocket: sid=%s", this.sessionId);
-	var polling = jocket._transport;
-	jocket._transport = jocket._probing; 
-	delete jocket._probing;
+	var polling = this._transport;
+	this._transport = this._probing; 
+	delete this._probing;
 	polling.stop();
-	jocket._sendPacket({type:Jocket.EVENT_UPGRADE});
+	this._sendPacket({type:Jocket.EVENT_UPGRADE});
 };
 
 Jocket.prototype._fire = function(name)
@@ -261,7 +279,7 @@ Jocket.EVENT_MESSAGE = "message";
 Jocket.Ws = function(jocket)
 {
 	this.jocket = jocket;
-	this.timers = {};
+	this._timers = {};
 };
 
 Jocket.Ws.prototype.start = function()
@@ -289,12 +307,12 @@ Jocket.Ws.prototype.start = function()
 			if (ws == jocket._probing) {
 				jocket._upgrade();
 			}
-			ws.timers.interval = setTimeout(function() {
+			ws._timers.interval = setTimeout(function() {
 				ws.ping();
 			}, jocket._pingInterval);
 		}
 		else if (packet.type == Jocket.PACKET_TYPE_MESSAGE) {
-			jocket._fire(Jocket.EVENT_MESSAGE, JSON.parse(packet.data), packet.name);
+			jocket._fire(Jocket.EVENT_MESSAGE, packet.name, JSON.parse(packet.data || "null"));
 		}
 		else {
 			Jocket.logger.warn("Unsupport message type for WebSocket: %s", packet.type);
@@ -319,9 +337,9 @@ Jocket.Ws.prototype.destroy = function(code, message)
 Jocket.Ws.prototype.ping = function(packet)
 {
 	var jocket = this.jocket;
-	delete this.timers.interval;
+	delete this._timers.interval;
 	this.sendPacket({type:Jocket.PACKET_TYPE_PING});
-	this.timers.timeout = setTimeout(function() {
+	this._timers.timeout = setTimeout(function() {
 		jocket._closeTransport(ws, Jocket.CLOSE_PING_TIMEOUT, "ping timeout");
 	}, jocket._pingTimeout);
 };
@@ -341,7 +359,7 @@ Jocket.Polling = function(jocket)
 {
 	this.jocket = jocket;
 	this.url = jocket._getPollingUrl();
-	this.timers = {};
+	this._timers = {};
 };
 
 Jocket.Polling.prototype.start = function()
@@ -373,7 +391,7 @@ Jocket.Polling.prototype.stop = function()
 	var polling = this;
 	polling.active = false;
 	Jocket.util.clearTimers(polling);
-	polling.timers.destroy = setTimeout(function() {
+	polling._timers.destroy = setTimeout(function() {
 		polling.destroy();
 	}, polling.jocket._pingTimeout);
 };
@@ -395,6 +413,7 @@ Jocket.Polling.prototype.poll = function()
 				Jocket.util.clearPingTimeout(polling);		
 				if (polling == jocket._probing) {
 					jocket._probing = null;
+					jocket._reconnectCount = 0;
 					jocket._transport = polling;
 					jocket.status = Jocket.STATUS_OPEN;
 					jocket._fire(Jocket.EVENT_OPEN);
@@ -407,13 +426,13 @@ Jocket.Polling.prototype.poll = function()
 					jocket._probing = new Jocket.Ws(jocket);
 					jocket._probing.start();
 				}
-				polling.timers.interval = setTimeout(function() {
+				polling._timers.interval = setTimeout(function() {
 					polling.ping();
 				}, jocket._pingInterval);
 			}
 		}
 		if (packet.type == Jocket.PACKET_TYPE_MESSAGE) {
-			jocket._fire(Jocket.EVENT_MESSAGE, JSON.parse(packet.data), packet.name);
+			jocket._fire(Jocket.EVENT_MESSAGE, packet.name, JSON.parse(packet.data || "null"));
 		}
 	};
 	ajax.onfailure = function(event, status) {
@@ -438,9 +457,9 @@ Jocket.Polling.prototype.ping = function()
 {
 	var polling = this;
 	var jocket = polling.jocket;
-	delete polling.timers.interval;
+	delete polling._timers.interval;
 	polling.sendPacket({type:Jocket.PACKET_TYPE_PING});
-	polling.timers.timeout = setTimeout(function() {
+	polling._timers.timeout = setTimeout(function() {
 		jocket._closeTransport(polling, Jocket.CLOSE_PING_TIMEOUT, "ping timeout");
 	}, jocket._pingTimeout);
 };
@@ -526,8 +545,9 @@ Jocket.Ajax.prototype =
 		url += (url.indexOf("?") == -1 ? "?" : "&") + timeParamName + "=" + Jocket.zipTime.now();
 		xhr.open(data == null ? "GET" : "POST", url, true);
 		xhr.setRequestHeader("Cache-Control", "no-store, no-cache");
+		xhr.setRequestHeader("Jocket-Client", "Web");
 		if (ajax.timeout != null) {
-			xhr.timeout = ajax.timeout; 
+			xhr.timeout = ajax.timeout;
 		}
 		if (data == null) {
 			xhr.send();
@@ -599,17 +619,17 @@ Jocket.util =
 {
 	clearTimers: function(transport)
 	{
-		for (var key in transport.timers) {
-			clearTimeout(transport.timers[key]);
+		for (var key in transport._timers) {
+			clearTimeout(transport._timers[key]);
 		}
-		transport.timers = {};
+		transport._timers = {};
 	},
 	
 	clearPingTimeout: function(transport)
 	{
-		if (transport.timers.timeout != null) {
-			clearTimeout(transport.timers.timeout);
-			delete transport.timers.timeout;
+		if (transport._timers.timeout != null) {
+			clearTimeout(transport._timers.timeout);
+			delete transport._timers.timeout;
 		}
 	}
 };

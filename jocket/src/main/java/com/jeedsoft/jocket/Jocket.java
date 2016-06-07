@@ -8,12 +8,7 @@ import com.jeedsoft.jocket.message.JocketQueueManager;
 
 public class Jocket
 {
-	public static void send(String sessionId, Object data)
-	{
-		send(sessionId, data, null);
-	}
-
-	public static void send(String sessionId, Object data, String name)
+	public static void send(String sessionId, String name, Object data)
 	{
 		JocketPacket packet = new JocketPacket(JocketPacket.TYPE_MESSAGE, name, data);
 		JocketQueueManager.publishMessage(sessionId, packet);
