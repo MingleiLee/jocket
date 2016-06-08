@@ -153,6 +153,7 @@ public class JocketPollingServlet extends HttpServlet
 		@Override
 		public void onTimeout(AsyncEvent event) throws IOException
 		{
+			logger.trace("[Jocket] Polling timeout. sid={}", cn.getSessionId());
 			cn.downstream(new JocketPacket(JocketPacket.TYPE_NOOP));
 		}
 
