@@ -136,6 +136,12 @@ public class JocketRedisSessionStore implements JocketSessionStore
 		return JocketRedisExecutor.hsetOnKeyExist(key, field, value);
 	}
 
+	public boolean hasAttribute(String id, String field)
+	{
+		String key = getAttrKey(id);
+		return JocketRedisExecutor.hexists(key, field);
+	}
+
 	public <T> T getAttribute(String id, String field)
 	{
 		String key = getAttrKey(id);

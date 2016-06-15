@@ -40,8 +40,8 @@ var Jocket = function(url, options)
 	this.status = Jocket.STATUS_NEW;
 	this.options = options || {};
 	this._timers = {};
-	this._reconnectDelay = this.options.reconnectDelay || 1000;
-	this._reconnectDelayMax = this.options.reconnectDelayMax || 20000;
+	this._reconnectDelay = Jocket.util.getProperty("reconnectDelay", this.options, 1000);
+	this._reconnectDelayMax = Jocket.util.getProperty("reconnectDelayMax", this.options, 20000);
 	this._reconnectCount = 0;
 	this._listeners = {};
 	if (this.options.autoOpen != false) {
@@ -74,9 +74,9 @@ Jocket.prototype.open = function()
 	ajax.onsuccess = function(response) {
 		Jocket.logger.debug("Session created: sid=%s", response.sessionId);
 		jocket.sessionId = response.sessionId;
-		jocket._upgradable = response.upgradable;
-		jocket._pingInterval = response.pingInterval || 25000;
-		jocket._pingTimeout = response.pingTimeout || 20000;
+		jocket._needUpgrade = Jocket.util.getProperty("upgrade", jocket.options, response, true);
+		jocket._pingInterval = Jocket.util.getProperty("pingInterval", response, 25000);
+		jocket._pingTimeout = Jocket.util.getProperty("pingTimeout", response, 20000);
 		var url = jocket._createUrl.replace(/\.jocket.*/, "");
 		for (var i = 0; i < response.pathDepth; ++i) {
 			url = url.replace(/\/[^\/]*$/, "");
@@ -160,6 +160,7 @@ Jocket.prototype._close = function(code, message)
 		delete this._probing;
 	}
 	this._fire(Jocket.EVENT_CLOSE, {code:code, message:message});
+	Jocket.logger.debug("Session closed: sid=%s, code=%d, message=%s", this.sessionId, code, message);
 	this.sessionId = null;
 	if (this.options.reconnect != false) {
 		var codes = {};
@@ -412,6 +413,7 @@ Jocket.Polling.prototype.poll = function()
 			if (packet.type == Jocket.PACKET_TYPE_PONG) {
 				Jocket.util.clearPingTimeout(polling);		
 				if (polling == jocket._probing) {
+					Jocket.logger.debug("Session opened: sid=%s", jocket.sessionId);
 					jocket._probing = null;
 					jocket._reconnectCount = 0;
 					jocket._transport = polling;
@@ -421,8 +423,8 @@ Jocket.Polling.prototype.poll = function()
 			}
 			polling.poll();
 			if (packet.type == Jocket.PACKET_TYPE_PONG) {
-				if (jocket._upgradable) {
-					jocket._upgradable = false;
+				if (jocket._needUpgrade) {
+					jocket._needUpgrade = false;
 					jocket._probing = new Jocket.Ws(jocket);
 					jocket._probing.start();
 				}
@@ -617,6 +619,17 @@ Jocket.Ajax.prototype =
 
 Jocket.util = 
 {
+	getProperty: function(key)
+	{
+		for (var i = 1; i < arguments.length - 1; ++i) {
+			var map = arguments[i];
+			if (key in map) {
+				return map[key];
+			}
+		}
+		return arguments[arguments.length - 1];
+	},
+
 	clearTimers: function(transport)
 	{
 		for (var key in transport._timers) {
@@ -706,4 +719,3 @@ Jocket.zipTime =
 	Jocket.isDebug = /debug=true/.test(script.src);
 	Jocket.logger.debug("Jocket library loaded: debug=%s", Jocket.isDebug);
 })();
-

@@ -245,6 +245,11 @@ public class JocketSession
 		this.parameters = parameters;
 	}
 
+	public boolean hasAttribute(String key)
+	{
+		return attributes.containsKey(key);
+	}
+
 	@SuppressWarnings("unchecked")
 	public <T> T getAttribute(String key)
 	{

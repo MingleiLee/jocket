@@ -47,7 +47,7 @@ public class JocketCreateServlet extends HttpServlet
 			JocketEndpointConfig config = JocketDeployer.getConfig(path);
 			JSONObject result = new JSONObject();
 			result.put("pathDepth", servletPath.replaceAll("[^/]+", "").length());
-			result.put("upgradable", JocketService.isWebSocketEnabled());
+			result.put("upgrade", JocketService.isWebSocketEnabled());
 			result.put("pingInterval", JocketService.getPingInterval());
 			result.put("pingTimeout", JocketService.getPingTimeout());
 

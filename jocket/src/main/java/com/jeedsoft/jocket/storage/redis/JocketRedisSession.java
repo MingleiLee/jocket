@@ -167,6 +167,11 @@ public class JocketRedisSession extends JocketSession
 		store.setBaseData(id, KEY_CLOSE_REASON, closeReason.toString());
 	}
 
+	public boolean hasAttribute(String key)
+	{
+		return store.hasAttribute(id, key);
+	}
+
 	@Override
 	public <T> T getAttribute(String key)
 	{

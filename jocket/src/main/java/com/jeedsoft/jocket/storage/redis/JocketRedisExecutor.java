@@ -59,6 +59,13 @@ public class JocketRedisExecutor
 		}
 	}
 
+	public static boolean hexists(String key, String field)
+	{
+		try (Jedis jedis = JocketRedisManager.getJedis()) {
+			return jedis.hexists(key, field);
+		}
+	}
+
 	public static String hget(String key, String field)
 	{
 		try (Jedis jedis = JocketRedisManager.getJedis()) {
