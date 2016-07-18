@@ -208,10 +208,10 @@ public class JocketRedisSession extends JocketSession
 		session.setUpgraded(Boolean.parseBoolean(baseData.get(KEY_UPGRADED)));
 		session.setConnected(Boolean.parseBoolean(baseData.get(KEY_CONNECTED)));
 		session.setHeartbeating(Boolean.parseBoolean(baseData.get(KEY_HEARTBEATING)));
-		session.setStartTime(Long.parseLong(baseData.get(KEY_START_TIME)));
-		session.setCloseTime(Long.parseLong(baseData.get(KEY_CLOSE_TIME)));
-		session.setLastHeartbeatTime(Long.parseLong(baseData.get(KEY_LAST_HEARTBEAT_TIME)));
-		session.setLastMessageTime(Long.parseLong(baseData.get(KEY_LAST_MESSAGE_TIME)));
+		session.setStartTime(getLong(baseData, KEY_START_TIME));
+		session.setCloseTime(getLong(baseData, KEY_CLOSE_TIME));
+		session.setLastHeartbeatTime(getLong(baseData, KEY_LAST_HEARTBEAT_TIME));
+		session.setLastMessageTime(getLong(baseData, KEY_LAST_MESSAGE_TIME));
 		session.setTimeoutSeconds(Integer.parseInt(baseData.get(KEY_TIMEOUT_SECONDS)));
 		session.setParameters(JocketJsonUtil.toStringMap(new JSONObject(baseData.get(KEY_PARAMETERS))));
 		session.setCloseReason(JocketCloseReason.parse(baseData.get(KEY_CLOSE_REASON)));
@@ -240,6 +240,12 @@ public class JocketRedisSession extends JocketSession
 		put(map, KEY_PARAMETERS, new JSONObject(session.getParameters()));
 		put(map, KEY_CLOSE_REASON, session.getCloseReason());
 		return map;
+	}
+
+	private static long getLong(Map<String, String> map, String key)
+	{
+		String text = map.get(key);
+		return JocketStringUtil.isEmpty(text) ? 0 : Long.parseLong(text);
 	}
 
 	private static void put(Map<String, String> map, String key, String value)

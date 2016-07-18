@@ -107,6 +107,7 @@ public class JocketPollingServlet extends HttpServlet
 	        }
 		}
 		catch (JocketException e) {
+			logger.error("[Jocket] HTTP polling failed.", e);
 			throw new ServletException(e);
 		}
 	}
