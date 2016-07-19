@@ -1,6 +1,7 @@
 package com.jeedsoft.jocket.transport;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -32,6 +33,8 @@ public final class JocketCorsFilter implements Filter
     public static final String RESPONSE_HEADER_ACCESS_CONTROL_ALLOW_METHODS = "Access-Control-Allow-Methods";
     public static final String RESPONSE_HEADER_ACCESS_CONTROL_ALLOW_HEADERS = "Access-Control-Allow-Headers";
 
+	private static final AtomicLong serial = new AtomicLong();
+
 	@Override
 	public void init(FilterConfig filterConfig) throws ServletException
 	{
@@ -48,6 +51,8 @@ public final class JocketCorsFilter implements Filter
 		HttpServletRequest request = (HttpServletRequest)req;
 		HttpServletResponse response = (HttpServletResponse)res;
 		response.setHeader("Cache-Control", "no-store, no-cache");
+		String path = request.getServletPath();
+		Thread.currentThread().setName("Jocket-" + serial.incrementAndGet() + ":" + path);
 		/*
 		if (request.getHeader("Referer") == null) {
 			String corsRequestHeaders = request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS);
@@ -66,7 +71,6 @@ public final class JocketCorsFilter implements Filter
 		String method = request.getMethod();
 		boolean allowed = isOriginAllowed(origin);
 		if (logger.isTraceEnabled()) {
-			String path = request.getServletPath();
 			logger.trace("[Jocket] CORS filter: path={}, method={}, origin={}, allowed={}", path, method, origin, allowed);
 		}
 		if (!allowed) {

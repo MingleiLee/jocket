@@ -35,7 +35,7 @@ public class JocketPollingServlet extends HttpServlet
 	private static final long serialVersionUID = 1L;
 
 	@Override
-	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException
 	{
 		try {
 			String sessionId = request.getParameter("s");
@@ -84,7 +84,8 @@ public class JocketPollingServlet extends HttpServlet
 			}
 			
 			//start the async context
-	        AsyncContext context = request.startAsync();
+			request.setAttribute("org.apache.catalina.ASYNC_SUPPORTED", true);
+			AsyncContext context = request.startAsync();
 			JocketPollingConnection cn = new JocketPollingConnection(session, context);
 	        context.addListener(new JocketPollingAsyncListener(cn));
 	        context.setTimeout(JocketService.getConnectionTimeout());
@@ -106,7 +107,7 @@ public class JocketPollingServlet extends HttpServlet
 		        }
 	        }
 		}
-		catch (JocketException e) {
+		catch (Exception e) {
 			logger.error("[Jocket] HTTP polling failed.", e);
 			throw new ServletException(e);
 		}
