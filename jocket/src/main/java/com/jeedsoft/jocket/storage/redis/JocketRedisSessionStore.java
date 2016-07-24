@@ -88,7 +88,7 @@ public class JocketRedisSessionStore implements JocketSessionStore
 			JocketRedisExecutor.srem(key, id);
 		}
 		if (!JocketStringUtil.isEmpty(newUserId)) {
-			String key = getUserKey(oldUserId);
+			String key = getUserKey(newUserId);
 			JocketRedisExecutor.sadd(key, id);
 		}
 	}

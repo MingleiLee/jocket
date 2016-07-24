@@ -212,7 +212,7 @@ public class JocketRedisSession extends JocketSession
 		session.setCloseTime(getLong(baseData, KEY_CLOSE_TIME));
 		session.setLastHeartbeatTime(getLong(baseData, KEY_LAST_HEARTBEAT_TIME));
 		session.setLastMessageTime(getLong(baseData, KEY_LAST_MESSAGE_TIME));
-		session.setTimeoutSeconds(Integer.parseInt(baseData.get(KEY_TIMEOUT_SECONDS)));
+		session.setTimeoutSeconds(getInt(baseData, KEY_TIMEOUT_SECONDS));
 		session.setParameters(JocketJsonUtil.toStringMap(new JSONObject(baseData.get(KEY_PARAMETERS))));
 		session.setCloseReason(JocketCloseReason.parse(baseData.get(KEY_CLOSE_REASON)));
 		session.setAttributes(attributes);
@@ -246,6 +246,12 @@ public class JocketRedisSession extends JocketSession
 	{
 		String text = map.get(key);
 		return JocketStringUtil.isEmpty(text) ? 0 : Long.parseLong(text);
+	}
+
+	private static int getInt(Map<String, String> map, String key)
+	{
+		String text = map.get(key);
+		return JocketStringUtil.isEmpty(text) ? 0 : Integer.parseInt(text);
 	}
 
 	private static void put(Map<String, String> map, String key, String value)
