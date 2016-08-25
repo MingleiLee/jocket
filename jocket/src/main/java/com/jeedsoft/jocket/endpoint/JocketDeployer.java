@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.jeedsoft.jocket.util.JocketException;
+import com.jeedsoft.jocket.util.JocketReflection;
 import com.jeedsoft.jocket.util.JocketStringUtil;
 
 public class JocketDeployer
@@ -16,13 +17,24 @@ public class JocketDeployer
 	
 	private static Map<String, Class<? extends JocketEndpoint>> classMap = new HashMap<>();
 
-	public static void deploy(Class<? extends JocketEndpoint>[] classes) throws JocketException
+	@SafeVarargs
+	public static void deploy(Class<? extends JocketEndpoint>... classes) throws JocketException
 	{
 		for (Class<? extends JocketEndpoint> cls: classes) {
 	    	JocketServerEndpoint annotation = cls.getAnnotation(JocketServerEndpoint.class);
 	    	addToTree(new JocketEndpointConfig(annotation, cls));
 	    	classMap.put(cls.getName(), cls);
 		}
+	}
+
+	public static void deploy(String... classNames) throws JocketException
+	{
+		@SuppressWarnings("unchecked")
+		Class<? extends JocketEndpoint>[] classes = new Class[classNames.length];
+		for (int i = 0; i < classNames.length; ++i) {
+			classes[i] = JocketReflection.getClass(classNames[i]);
+		}
+		deploy(classes);
 	}
 
 	private static synchronized void addToTree(JocketEndpointConfig item) throws JocketException
