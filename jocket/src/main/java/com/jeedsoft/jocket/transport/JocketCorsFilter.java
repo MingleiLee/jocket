@@ -1,7 +1,6 @@
 package com.jeedsoft.jocket.transport;
 
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicLong;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -17,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.jeedsoft.jocket.util.JocketStringUtil;
+import com.jeedsoft.jocket.util.JocketThreadUtil;
 
 @WebFilter(servletNames={"JocketCreateServlet", "JocketPollingServlet"}, asyncSupported=true)
 public final class JocketCorsFilter implements Filter
@@ -32,8 +32,6 @@ public final class JocketCorsFilter implements Filter
     public static final String RESPONSE_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN	= "Access-Control-Allow-Origin";
     public static final String RESPONSE_HEADER_ACCESS_CONTROL_ALLOW_METHODS = "Access-Control-Allow-Methods";
     public static final String RESPONSE_HEADER_ACCESS_CONTROL_ALLOW_HEADERS = "Access-Control-Allow-Headers";
-
-	private static final AtomicLong serial = new AtomicLong();
 
 	@Override
 	public void init(FilterConfig filterConfig) throws ServletException
@@ -52,7 +50,7 @@ public final class JocketCorsFilter implements Filter
 		HttpServletResponse response = (HttpServletResponse)res;
 		response.setHeader("Cache-Control", "no-store, no-cache");
 		String path = request.getServletPath();
-		Thread.currentThread().setName("Jocket-" + serial.incrementAndGet() + ":" + path);
+		JocketThreadUtil.updatePollingThreadName(path);		
 		/*
 		if (request.getHeader("Referer") == null) {
 			String corsRequestHeaders = request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS);

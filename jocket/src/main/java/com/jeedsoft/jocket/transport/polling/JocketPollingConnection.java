@@ -49,7 +49,13 @@ public class JocketPollingConnection extends JocketConnection
 			return;
 		}
 		String sessionId = getSessionId();
-		logger.trace("[Jocket] Polling finished: sid={}, content={}", sessionId, packet);
+		String type = packet.getType();
+		if (JocketPacket.TYPE_NOOP.equals(type)) {
+			logger.trace("[Jocket] Polling timeout: sid={}");
+		}
+		else {
+			logger.debug("[Jocket] Send message to client: transport=polling, sid={}, packet={}", sessionId, packet);
+		}
 		try {
 	        JocketConnectionManager.remove(this); //connection must be removed before write response
 	        HttpServletResponse response = (HttpServletResponse)context.getResponse();

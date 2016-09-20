@@ -23,6 +23,7 @@ import com.jeedsoft.jocket.message.JocketPacket;
 import com.jeedsoft.jocket.message.JocketQueueManager;
 import com.jeedsoft.jocket.transport.polling.JocketPollingConnection;
 import com.jeedsoft.jocket.util.JocketCloseException;
+import com.jeedsoft.jocket.util.JocketThreadUtil;
 import com.jeedsoft.jocket.util.JocketWebSocketUtil;
 
 @ServerEndpoint("/jocket-ws")
@@ -30,9 +31,12 @@ public class JocketWebSocketEndpoint
 {
 	private static final Logger logger = LoggerFactory.getLogger(JocketWebSocketEndpoint.class);
 	
+	private static final String path = "/jocket-ws";
+	
 	@OnOpen
 	public void onOpen(Session wsSession, EndpointConfig endpointConfig)
 	{
+		JocketThreadUtil.updateWebSocketThreadName(path + "/open");
 		JocketSession session = null;
 		try {
 			String sessionId = JocketWebSocketUtil.getParameter(wsSession, "s");
@@ -74,6 +78,7 @@ public class JocketWebSocketEndpoint
 	@OnClose
 	public void onClose(Session wsSession, CloseReason closeReason)
 	{
+		JocketThreadUtil.updateWebSocketThreadName(path + "/close");
 		JocketWebSocketConnection cn = getConnection(wsSession);
 		String sessionId = cn.getSessionId();
 		JocketSession session = null;
@@ -100,6 +105,7 @@ public class JocketWebSocketEndpoint
 	@OnMessage
 	public void onMessage(String text, Session wsSession)
 	{
+		JocketThreadUtil.updateWebSocketThreadName(path + "/message");
 		JocketWebSocketConnection cn = getConnection(wsSession);
 		String sessionId = cn.getSessionId();
 		logger.trace("[Jocket] Packet received: sid={}, packet={}", sessionId, text);

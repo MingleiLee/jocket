@@ -38,12 +38,13 @@ public class JocketWebSocketConnection extends JocketConnection
 	@Override
 	public synchronized void downstream(JocketPacket packet) throws IOException
 	{
+		String sessionId = getSessionId();
 		if (isActive()) {
-			logger.debug("[Jocket] Send message to client: sid={}, packet={}", getSessionId(), packet);
-			wsSession.getAsyncRemote().sendText(packet.toJson().toString());
+			logger.debug("[Jocket] Send message to client: transport=websocket, sid={}, packet={}", sessionId, packet);
+			wsSession.getBasicRemote().sendText(packet.toJson().toString());
 		}
 		else {
-			logger.warn("[Jocket] WebSocket connection is closed: sid={}, packet={}", getSessionId(), packet);
+			logger.warn("[Jocket] WebSocket connection is closed: sid={}, packet={}", sessionId, packet);
 		}
 	}
 
