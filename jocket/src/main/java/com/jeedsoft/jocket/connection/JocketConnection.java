@@ -49,24 +49,24 @@ public abstract class JocketConnection
 	public void onEvent(JocketPacket event)
 	{
 		String type = event.getType();
+		String sessionId = getSessionId();
 		if (JocketPacket.TYPE_PING.equals(type)) {
 			try {
 				session.setHeartbeating(false);
 				downstream(new JocketPacket(JocketPacket.TYPE_PONG));
 			}
 			catch (IOException e) {
-				logger.error("[Jocket] Failed to send PONG to client: sid=" + getSessionId(), e);
+				logger.error("[Jocket] Failed to send PONG to client: sid=" + sessionId, e);
 			}
 		}
 		else if (JocketPacket.TYPE_CLOSE.equals(type)) {
 			try {
-				String sessionId = getSessionId();
 				JocketConnectionManager.remove(sessionId);
 				JocketSessionManager.remove(sessionId);
 				close(JocketCloseReason.parse(event.getData()));
 			}
 			catch (IOException e) {
-				logger.error("[Jocket] Failed to close connection: sid=" + getSessionId(), e);
+				logger.error("[Jocket] Failed to close connection: sid=" + sessionId, e);
 			}
 		}
 		else if (JocketPacket.TYPE_UPGRADE.equals(type)) {

@@ -71,6 +71,9 @@ public abstract class JocketAbstractQueue implements JocketQueue
 		if (cn != null) {
 			new Thread(new EventConsumer(cn, event)).start();
 		}
+		else {
+			logger.debug("[Jocket] No connection found currently: sid={}", sessionId);
+		}
 	}
 
 	protected static class MessageConsumer implements Runnable
@@ -129,6 +132,9 @@ public abstract class JocketAbstractQueue implements JocketQueue
 			synchronized(cn) {
 				if (cn.isActive()) {
 					cn.onEvent(event);
+				}
+				else {
+					logger.debug("[Jocket] Connection is not active. sid={}", cn.getSession());
 				}
 			}
 		}

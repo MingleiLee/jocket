@@ -110,6 +110,16 @@ public class JocketWebSocketEndpoint
 		String sessionId = cn.getSessionId();
 		logger.trace("[Jocket] Packet received: sid={}, packet={}", sessionId, text);
 		JocketSession session = JocketSessionManager.get(sessionId);
+		while (session != null && JocketSession.STATUS_HANDSHAKING.equals(session.getStatus())) {
+			try {
+				logger.trace("[Jocket] Waiting for handshaking. sid={}", sessionId);
+				Thread.sleep(1000);
+			}
+			catch (InterruptedException e) {
+				logger.error("[Jocket] Failed to waiting for handshaking. sid={}", sessionId);
+			}
+			session = JocketSessionManager.get(sessionId);
+		}
 		if (session == null) {
 			logger.error("[Jocket] Session not found: sid=" + sessionId);
 			JocketWebSocketUtil.close(wsSession, JocketCloseCode.SESSION_NOT_FOUND, "session not found");
