@@ -102,8 +102,7 @@ public abstract class JocketAbstractQueue implements JocketQueue
 							cn.downstream(packet);
 						}
 						catch (Throwable e) {
-							String msg = "[Jocket] Failed to send message: sid=" + sessionId + ", packet=" + packet;
-							logger.error(msg, e);
+							logger.error("[Jocket] Failed to send message: sid=" + sessionId + ", packet=" + packet, e);
 						}
 						if (cn instanceof JocketWebSocketConnection) {
 							queue.notifyNewMessage(sessionId);

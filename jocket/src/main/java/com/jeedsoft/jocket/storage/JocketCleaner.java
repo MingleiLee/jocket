@@ -54,7 +54,7 @@ public class JocketCleaner
 			for (JocketSession session: brokenSessions) {
 				JocketQueueManager.removeSubscriber(session.getId(), true);
 				int code = JocketCloseCode.NO_HEARTBEAT;
-				JocketCloseReason reason = new JocketCloseReason(code, "no new polling");
+				JocketCloseReason reason = new JocketCloseReason(code, "no new ping");
 				JocketEndpointRunner.doClose(session, reason);
 			}
 			if (logger.isDebugEnabled()) {

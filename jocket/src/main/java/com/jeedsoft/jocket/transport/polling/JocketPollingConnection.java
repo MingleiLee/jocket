@@ -51,7 +51,7 @@ public class JocketPollingConnection extends JocketConnection
 		String sessionId = getSessionId();
 		String type = packet.getType();
 		if (JocketPacket.TYPE_NOOP.equals(type)) {
-			logger.trace("[Jocket] Polling timeout: sid={}");
+			logger.trace("[Jocket] Polling timeout: sid={}", sessionId);
 		}
 		else {
 			logger.debug("[Jocket] Send message to client: transport=polling, sid={}, packet={}", sessionId, packet);

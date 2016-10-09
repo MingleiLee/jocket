@@ -116,12 +116,12 @@ public class JocketWebSocketEndpoint
 				Thread.sleep(1000);
 			}
 			catch (InterruptedException e) {
-				logger.error("[Jocket] Failed to waiting for handshaking. sid={}", sessionId);
+				logger.error("[Jocket] Failed to wait for handshaking. sid={}", sessionId);
 			}
 			session = JocketSessionManager.get(sessionId);
 		}
 		if (session == null) {
-			logger.error("[Jocket] Session not found: sid=" + sessionId);
+			logger.error("[Jocket] Session not found: sid={}", sessionId);
 			JocketWebSocketUtil.close(wsSession, JocketCloseCode.SESSION_NOT_FOUND, "session not found");
 			return;
 		}
@@ -136,13 +136,13 @@ public class JocketWebSocketEndpoint
 				cn.downstream(new JocketPacket(JocketPacket.TYPE_PONG));
 			}
 			catch (Throwable e) {
-				logger.error("[Jocket] Failed to send PONG packet to client: sid=" + sessionId);
+				logger.error("[Jocket] Failed to send PONG packet to client: sid=" + sessionId, e);
 			}
 		}
 		else if (JocketPacket.TYPE_UPGRADE.equals(packet.getType())) {
 			synchronized (cn) {
 				if (cn.isActive()) {
-					logger.debug("[Jocket] Upgrade the transport to WebSocket: sid=" + sessionId);
+					logger.debug("[Jocket] Upgrade the transport to WebSocket: sid={}", sessionId);
 					session.setStatus(JocketSession.STATUS_OPEN);
 					JocketConnectionManager.removeProbing(sessionId);
 					JocketPollingConnection pc = (JocketPollingConnection)JocketConnectionManager.remove(sessionId);
@@ -158,7 +158,7 @@ public class JocketWebSocketEndpoint
 			}
 		}
 		else {
-			logger.error("[Jocket] Invalid packet type for WebSocket connection: " + type);
+			logger.error("[Jocket] Invalid packet type for WebSocket connection: sid={}, type={}", sessionId, type);
 		}
 	}
 

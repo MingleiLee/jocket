@@ -49,7 +49,7 @@ public class JocketService
 		JocketCleaner.start();
 		JocketQueueManager.start();
 		isRunning = true;
-        logger.info("[Jocket] Service started. tree structure:\n" + JocketDeployer.getTreeText());
+        logger.info("[Jocket] Service started. tree structure:\n{}", JocketDeployer.getTreeText());
 	}
 	
 	/**
