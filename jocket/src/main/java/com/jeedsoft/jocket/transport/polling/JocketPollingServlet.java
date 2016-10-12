@@ -14,7 +14,6 @@ import javax.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.jeedsoft.jocket.Jocket;
 import com.jeedsoft.jocket.JocketService;
 import com.jeedsoft.jocket.connection.JocketCloseCode;
 import com.jeedsoft.jocket.connection.JocketCloseReason;
@@ -26,6 +25,7 @@ import com.jeedsoft.jocket.message.JocketPacket;
 import com.jeedsoft.jocket.message.JocketQueueManager;
 import com.jeedsoft.jocket.util.JocketException;
 import com.jeedsoft.jocket.util.JocketIoUtil;
+import com.jeedsoft.jocket.util.JocketRequestUtil;
 
 @WebServlet(urlPatterns="/jocket", name="JocketPollingServlet", asyncSupported=true)
 public class JocketPollingServlet extends HttpServlet
@@ -39,7 +39,10 @@ public class JocketPollingServlet extends HttpServlet
 	{
 		String sessionId = request.getParameter("s");
 		try {
-			logger.trace("[Jocket] Polling start: sid={}", sessionId);
+			if (logger.isTraceEnabled()) {
+				String params = JocketRequestUtil.getQueryStringWithoutSessionId(request);
+				logger.trace("[Jocket] Polling start: sid={}, params=[{}]", sessionId, params);
+			}
 
 			//get session and check status
 			JocketSession session = JocketSessionManager.get(sessionId);
@@ -117,7 +120,10 @@ public class JocketPollingServlet extends HttpServlet
 	{
 		String sessionId = request.getParameter("s");
 		String text = JocketIoUtil.readText(request);
-		logger.trace("[Jocket] Packet received: sid={}, packet={}", sessionId, text);
+		if (logger.isTraceEnabled()) {
+			String params = JocketRequestUtil.getQueryStringWithoutSessionId(request);
+			logger.trace("[Jocket] Packet received: sid={}, packet={}, params=[{}]", sessionId, text, params);
+		}
 		JocketSession session = JocketSessionManager.get(sessionId);
 		if (session == null) {
 			logger.error("[Jocket] Session not found: sid={}", sessionId);
@@ -138,7 +144,7 @@ public class JocketPollingServlet extends HttpServlet
 			if (reason == null) {
 				reason = new JocketCloseReason(JocketCloseCode.NORMAL, "Jocket session closed by user");
 			}
-			Jocket.close(sessionId, reason.getCode(), reason.getMessage());
+			JocketSessionManager.close(sessionId, reason, false);
 		}
 		else {
 			logger.error("[Jocket] Invalid packet type for polling connection: sid={}, type={}", sessionId, type);
