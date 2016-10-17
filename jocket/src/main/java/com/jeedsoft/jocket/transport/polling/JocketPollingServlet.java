@@ -62,6 +62,7 @@ public class JocketPollingServlet extends HttpServlet
 				JocketSessionManager.remove(sessionId);
 				return;
 			}
+
 			if (session.isConnected()) {
 				logger.debug("[Jocket] Already connected: sid={}", sessionId);
 				JocketPacket packet = new JocketPacket(JocketPacket.TYPE_NOOP);
@@ -77,21 +78,22 @@ public class JocketPollingServlet extends HttpServlet
 				session.setStatus(JocketSession.STATUS_OPEN);
 	        }
 
-	        //return PONG when waiting for heartbeat
-			if (session.isHeartbeating()) {
-				logger.trace("[Jocket] Jocket is waiting for handshaking: sid={}", sessionId);
-				session.setHeartbeating(false);
-				JocketPacket packet = new JocketPacket(JocketPacket.TYPE_PONG);
-				JocketIoUtil.writeJson(response, packet.toJson());
-				return;
-			}
-			
 			//start the async context
 			request.setAttribute("org.apache.catalina.ASYNC_SUPPORTED", true);
 			AsyncContext context = request.startAsync();
 			JocketPollingConnection cn = new JocketPollingConnection(session, context);
 	        context.addListener(new JocketPollingAsyncListener(cn));
 	        context.setTimeout(JocketService.getConnectionTimeout());
+
+	        //return PONG when waiting for heartbeat
+			if (session.isHeartbeating()) {
+				logger.trace("[Jocket] Jocket is waiting for handshaking: sid={}", sessionId);
+				session.setHeartbeating(false);
+				JocketPacket packet = new JocketPacket(JocketPacket.TYPE_PONG);
+				cn.downstream(packet);
+				return;
+			}
+			
 	        synchronized (cn) {
 		        JocketConnectionManager.add(cn);
 		        if (JocketSession.STATUS_OPEN.equals(status)) {
