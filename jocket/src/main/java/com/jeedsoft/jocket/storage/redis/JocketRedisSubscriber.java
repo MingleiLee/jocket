@@ -63,7 +63,9 @@ public class JocketRedisSubscriber
 	        	if (JocketService.isRunning()) {
 	        		new Timer().schedule(new TimerTask() {
 						public void run() {
-			        		start();
+				        	if (JocketService.isRunning()) {
+				        		JocketRedisSubscriber.start();
+				        	}
 						}
 					}, retryInterval);
 	        	}

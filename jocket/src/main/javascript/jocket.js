@@ -26,16 +26,16 @@ var Jocket = function(url, options)
 	if (url == null || url == "") {
 		throw new Error("The URL should not be empty");
 	}
-	var index = url.indexOf("?");
-	var path = index == -1 ? url : url.substring(0, index);
-	var args = index == -1 ? null : url.substring(index + 1);
 	if (/^http(s?):/.test(url)) {
-		this._createUrl = path + ".jocket" + (args == null ? "" : "?" + args);
+		this._createUrl = url;
 	}
 	else {
-		var pageDir = location.href.replace(/[\?#].*/, "").replace(/[^\/]+$/, "");
-		var createUrl = pageDir + "create.jocket?jocket_path=" + encodeURIComponent(path);
-		this._createUrl = createUrl + (args == null ? "" : "&" + args);
+		var path = url.replace(/\?.*/, "");
+		var dir = location.href.replace(/[\?#].*/, "").replace(/[^\/]+$/, "");
+		this._createUrl = dir + "create.jocket?jocket_path=" + encodeURIComponent(path);
+		if (path != url) {
+			this._createUrl += "&" + url.substring(path.length + 1);
+		}
 	}
 	this.status = Jocket.STATUS_NEW;
 	this.options = options || {};
@@ -235,16 +235,6 @@ Jocket.prototype._fire = function(name)
 	}
 };
 
-Jocket.prototype._getPollingUrl = function()
-{
-	return this._rootUrl + "jocket?s=" + this.sessionId;
-};
-
-Jocket.prototype._getWebSocketUrl = function()
-{
-	return this._rootUrl.replace(/^http/, "ws") + "jocket-ws?s=" + this.sessionId;
-};
-
 Jocket.STATUS_NEW     = "new";
 Jocket.STATUS_OPENING = "opening";
 Jocket.STATUS_OPEN    = "open";
@@ -287,7 +277,7 @@ Jocket.Ws.prototype.start = function()
 {
 	var ws = this;
 	var jocket = ws.jocket;
-	ws.socket = new WebSocket(jocket._getWebSocketUrl());
+	ws.socket = new WebSocket(jocket._rootUrl.replace(/^http/, "ws") + "jocket-ws?s=" + jocket.sessionId);
 	ws.socket.onopen = function() {
 		Jocket.logger.debug("WebSocket opened.");
 		ws.ping();
@@ -359,7 +349,8 @@ Jocket.Ws.prototype.sendPacket = function(packet)
 Jocket.Polling = function(jocket)
 {
 	this.jocket = jocket;
-	this.url = jocket._getPollingUrl();
+	this.pollUrl = jocket._rootUrl + "poll.jocket?s=" + jocket.sessionId;
+	this.sendUrl = jocket._rootUrl + "send.jocket?s=" + jocket.sessionId;
 	this._timers = {};
 };
 
@@ -383,7 +374,7 @@ Jocket.Polling.prototype.destroy = function(code, message)
 		this.active = false;
 		var reason = {code:code, message:message};
 		var packet = {type:Jocket.PACKET_TYPE_CLOSE, data:JSON.stringify(reason)};
-		new Jocket.Ajax(this.url).submit(packet);
+		new Jocket.Ajax(this.sendUrl).submit("POST", packet);
 	}
 };
 
@@ -401,7 +392,7 @@ Jocket.Polling.prototype.poll = function()
 {
 	var polling = this;
 	var jocket = polling.jocket;
-	var ajax = new Jocket.Ajax(polling.url);
+	var ajax = new Jocket.Ajax(polling.pollUrl);
 	ajax.onsuccess = function(packet) {
 		Jocket.logger.debug("Packet received: sid=%s, transport=polling, packet=%o", jocket.sessionId, packet);
 		if (polling.active) {
@@ -440,19 +431,19 @@ Jocket.Polling.prototype.poll = function()
 	ajax.onfailure = function(event, status) {
 		jocket._close(Jocket.CLOSE_POLLING_FAILED, "polling failed");
 	};
-	ajax.submit();
+	ajax.submit("POST");
 };
 
 Jocket.Polling.prototype.sendPacket = function(packet)
 {
 	var jocket = this.jocket;
 	Jocket.logger.debug("Packet send: sid=%s, transport=polling, packet=%o", jocket.sessionId, packet);
-	var ajax = new Jocket.Ajax(this.url);
+	var ajax = new Jocket.Ajax(this.sendUrl);
 	ajax.onfailure = function(event, status) {
 		Jocket.logger.error("Packet send failed: sid=%s, event=%o, status=%d", jocket.sessionId, event, status);
 		jocket._fire(Jocket.EVENT_ERROR, event);
 	};
-	ajax.submit(packet);
+	ajax.submit("POST", packet);
 };
 
 Jocket.Polling.prototype.ping = function()
@@ -516,6 +507,10 @@ Jocket.Ajax._parseResponse = function(xhr, status)
 	var result = {success:false, httpStatus:xhr.status};
 	if (xhr.status == 200) {
 		var text = xhr.responseText;
+		var taint = "for(;;)";
+		if (text != null && text.length >= taint.length && text.substring(0, taint.length) == taint) {
+			text = text.substring(taint.length);
+		}
 		try {
 			result.json = JSON.parse(text);
 			result.success = true;
@@ -532,7 +527,7 @@ Jocket.Ajax._parseResponse = function(xhr, status)
 
 Jocket.Ajax.prototype = 
 {
-	submit: function(data)
+	submit: function(method, data)
 	{
 		var ajax = this;
 		var xhr = new XMLHttpRequest();
@@ -545,7 +540,7 @@ Jocket.Ajax.prototype =
 		var url = ajax.url;
 		var timeParamName = ajax.timeParamName || "t";
 		url += (url.indexOf("?") == -1 ? "?" : "&") + timeParamName + "=" + Jocket.zipTime.now();
-		xhr.open(data == null ? "GET" : "POST", url, true);
+		xhr.open(method || "GET", url, true);
 		xhr.setRequestHeader("Cache-Control", "no-store, no-cache");
 		xhr.setRequestHeader("Jocket-Client", "Web");
 		if (ajax.timeout != null) {

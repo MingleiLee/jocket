@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
 import com.jeedsoft.jocket.util.JocketStringUtil;
 import com.jeedsoft.jocket.util.JocketThreadUtil;
 
-@WebFilter(servletNames={"JocketCreateServlet", "JocketPollingServlet"}, asyncSupported=true)
+@WebFilter(servletNames={"JocketCreateServlet", "JocketPollingServlet", "JocketSendServlet"}, asyncSupported=true)
 public final class JocketCorsFilter implements Filter
 {
 	private static final Logger logger = LoggerFactory.getLogger(JocketCorsFilter.class);
