@@ -12,13 +12,15 @@
  * Create a Jocket object.
  * 
  * @param url Jocket URL. acceptable formats:
- *     1. URL starts with http/https. for example: http://www.aaa.com/bbb/chat
+ *     1. URL starts with http/https. for example: http://www.aaa.com/abc/create.jocket
  *     2. URL starts with slash(/). for example: /abc, /abc/test
  *        In this case, Jocket and the current page should share a same back-end server.
  * @param options Jocket options. available properties:
- *     autoOpen : Auto connect to server when Jocket object is created.
+ *     autoOpen : [boolean] Auto connect to server when Jocket object is created.
  *                default: true
- *     reconnect: Auto reconnect when connect is closed due to network or other errors.
+ *     reconnect: [boolean] Auto reconnect when connect is closed due to network or other errors.
+ *                default: true
+ *     upgrade  : [boolean] Upgrade to WebSocket if available. If not, use HTTP polling only. 
  *                default: true
  */
 var Jocket = function(url, options)

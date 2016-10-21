@@ -84,18 +84,18 @@ public class JocketPollingServlet extends HttpServlet
 			JocketPollingConnection cn = new JocketPollingConnection(session, context);
 	        context.addListener(new JocketPollingAsyncListener(cn));
 	        context.setTimeout(JocketService.getConnectionTimeout());
-
-	        //return PONG when waiting for heartbeat
-			if (session.isHeartbeating()) {
-				logger.trace("[Jocket] Jocket is waiting for handshaking: sid={}", sessionId);
-				session.setHeartbeating(false);
-				JocketPacket packet = new JocketPacket(JocketPacket.TYPE_PONG);
-				cn.downstream(packet);
-				return;
-			}
 			
 	        synchronized (cn) {
 		        JocketConnectionManager.add(cn);
+		        //return PONG when waiting for heartbeat
+				if (session.isHeartbeating()) {
+					logger.trace("[Jocket] Jocket is waiting for handshaking: sid={}", sessionId);
+					session.setHeartbeating(false);
+					JocketPacket packet = new JocketPacket(JocketPacket.TYPE_PONG);
+					cn.downstream(packet);
+					return;
+				}
+				
 		        if (JocketSession.STATUS_OPEN.equals(status)) {
 		    		JocketQueueManager.addSubscriber(cn);
 		        }
