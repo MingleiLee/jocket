@@ -31,6 +31,11 @@ public class JocketSendServlet extends HttpServlet
 	@Override
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
 	{
+		process(request, response);
+	}
+	
+	public static void process(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+	{
 		String sessionId = request.getParameter("s");
 		String text = JocketIoUtil.readText(request);
 		if (logger.isTraceEnabled()) {

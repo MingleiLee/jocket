@@ -37,6 +37,11 @@ public class JocketPollingServlet extends HttpServlet
 	@Override
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException
 	{
+		process(request, response);
+	}
+	
+	public static void process(HttpServletRequest request, HttpServletResponse response) throws ServletException
+	{
 		String sessionId = request.getParameter("s");
 		try {
 			if (logger.isTraceEnabled()) {

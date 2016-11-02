@@ -34,28 +34,22 @@ public class JocketCreateServlet extends HttpServlet
 		doPost(request, response);
 	}
 	
-	private void notFound(HttpServletResponse response, String message) throws IOException
-	{
-		response.setStatus(404);
-		JocketIoUtil.writeText(response, message);
-	}
-	
 	@Override
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
 	{
 		String servletPath = request.getServletPath();
-		if (!servletPath.endsWith("/create.jocket")) {
-			notFound(response, "Invalid Jocket path.");
-			return;
-		}
 		String path = request.getParameter("jocket_path");
+		if (path == null) {
+			path = servletPath.replaceFirst("\\.jocket.*", ""); //for backward compatiblity
+		}
 		logger.debug("[Jocket] Session creating: path={}, query string={}", path, request.getQueryString());
 		JocketEndpointConfig config;
 		try {
 			config = JocketDeployer.getConfig(path);
 		}
 		catch (JocketException e) {
-			notFound(response, e.getMessage());
+			response.setStatus(404);
+			JocketIoUtil.writeText(response, "Jocket configuration not found.");
 			return;
 		}
 		

@@ -1,7 +1,10 @@
 /**
  * JavaScript library for Jocket
  * 
- * Notice: The methods start with '_' is private, and should not be used by user.
+ * Notice:
+ *     1. The methods start with '_' is private, and should not be used by user.
+ *     2. In the @params description, [TYPE, DEFAULT] means the parameter's type is TYPE, default value is DEFAULT.
+ *        If DEFAULT is 'required', it means the parameter is required.
  */
 
 //-----------------------------------------------------------------------
@@ -11,36 +14,95 @@
 /**
  * Create a Jocket object.
  * 
+ * Examples:
+ *     var jocket = new Jocket({server:'http://def.com/service', path:'/my/chat'})  
+ *     var jocket = new Jocket({server:'http://abc.com', path:'/chat', params:{userId:12345}})  
+ *
+ * @param options [object, required] A JSON object contains Jocket options. acceptable attributes:
+ *     server	 : [string, current directory] The server URL where Jocket is deployed. e.g. http://abc.com,
+ *                 https://abc.com/xyz. The default value is current web directory. e.g.
+ *                 -------------------------------------------------------------
+ *                   URL of current page              |   server
+ *                 -------------------------------------------------------------
+ *                   http://abc.com                   |   http://abc.com
+ *                 -------------------------------------------------------------
+ *                   http://abc.com/                  |   http://abc.com
+ *                 -------------------------------------------------------------
+ *                   http://abc.com/hello             |   http://abc.com
+ *                 -------------------------------------------------------------
+ *                   http://abc.com/hello/            |   http://abc.com/hello
+ *                 -------------------------------------------------------------
+ *                   http://abc.com/hello/world.jsp   |   http://abc.com/hello
+ *                 -------------------------------------------------------------
+ *     path		 : [string, required] The Jocket path, which is defined by developer. e.g., /hello, /my/chat
+ *     params	 : [object, null] The parameters pass to Jocket service. e.g., {user:'tom',age:25}, {chatId:123}
+ *     upgrade   : [boolean, true] Upgrade to WebSocket if available. If not, use long-polling only.
+ *     autoOpen  : [boolean, true] Auto connect to server when Jocket object is created.
+ *     reconnect : [boolean, true] Auto reconnect when connect is closed due to network or other errors.
+ *     urlVersion: [integer, 2] The URL version, only for backward compatibility. 
+ *
+ * You can also use the following parameters for backward compatibility. But you should upgrade to the prior way as
+ * soon as possible.
+ *  
  * @param url Jocket URL. acceptable formats:
  *     1. URL starts with http/https. for example: http://www.aaa.com/abc/create.jocket
  *     2. URL starts with slash(/). for example: /abc, /abc/test
  *        In this case, Jocket and the current page should share a same back-end server.
  * @param options Jocket options. available properties:
- *     autoOpen : [boolean] Auto connect to server when Jocket object is created.
- *                default: true
- *     reconnect: [boolean] Auto reconnect when connect is closed due to network or other errors.
- *                default: true
- *     upgrade  : [boolean] Upgrade to WebSocket if available. If not, use HTTP polling only. 
- *                default: true
+ *     upgrade  : [boolean, true] Upgrade to WebSocket if available. If not, use long-polling only. 
+ *     autoOpen : [boolean, true] Auto connect to server when Jocket object is created.
+ *     reconnect: [boolean, true] Auto reconnect when connect is closed due to network or other errors.
  */
-var Jocket = function(url, options)
+var Jocket = function(options)
 {
-	if (url == null || url == "") {
-		throw new Error("The URL should not be empty");
+	if (typeof options == "object") {
+		this.options = options;
+		this._urlVersion = options.urlVersion || 2;
+		var server = options.server;
+		if (server == null) {
+    		server = window.location.href.replace(/[\?#].*$/, "");
+    		var index = server.lastIndexOf("/");
+    		if (index > 0 && server.charAt(index - 1) != "/") {
+    			server = server.substring(0, index);
+    		}
+		}
+		if (this._urlVersion == 1) {
+			this._createUrl = server + options.path + ".jocket";
+		}
+		else {
+			this._createUrl = server + "/create.jocket?jocket_path=" + encodeURIComponent(options.path);
+		}
+		if (options.params != null) {
+			for (var key in options.params) {
+				var separator = this._createUrl.indexOf(".jocket?") == -1 ? "?" : "&";
+				this._createUrl += separator + key + "=" + encodeURIComponent(options.params[key]);
+			}
+		}
 	}
-	if (/^http(s?):/.test(url)) {
-		this._createUrl = url;
-	}
-	else {
-		var path = url.replace(/\?.*/, "");
-		var dir = location.href.replace(/[\?#].*/, "").replace(/[^\/]+$/, "");
-		this._createUrl = dir + "create.jocket?jocket_path=" + encodeURIComponent(path);
-		if (path != url) {
-			this._createUrl += "&" + url.substring(path.length + 1);
+	else { //for backward compatibility. the old way is: new Jocket(url, options)
+		Jocket.logger.warn("Please use Jocket by new way: new Jocket({server:'http://host/a', path:'/b/c', params:{d:'e'}})");
+		this._urlVersion = 2;
+		var url = options;
+		this.options = arguments[1] || {};
+		var index = url.indexOf("?");
+		var path = index == -1 ? url : url.substring(0, index);
+		var args = index == -1 ? null : url.substring(index + 1);
+		if (/^http(s?):/.test(url)) {
+			if (url.indexOf("create.jocket") == -1) {
+				this._urlVersion = 1;
+				this._createUrl = path + ".jocket" + (args == null ? "" : "?" + args);
+			}
+			else {
+				this._createUrl = url;
+			}
+		}
+		else {
+			var pageDir = location.href.replace(/[\?#].*/, "").replace(/[^\/]+$/, "");
+			var createUrl = pageDir + "create.jocket?jocket_path=" + encodeURIComponent(path);
+			this._createUrl = createUrl + (args == null ? "" : "&" + args);
 		}
 	}
 	this.status = Jocket.STATUS_NEW;
-	this.options = options || {};
 	this._timers = {};
 	this._reconnectDelay = Jocket.util.getProperty("reconnectDelay", this.options, 1000);
 	this._reconnectDelayMax = Jocket.util.getProperty("reconnectDelayMax", this.options, 20000);
@@ -83,7 +145,17 @@ Jocket.prototype.open = function()
 		for (var i = 0; i < response.pathDepth; ++i) {
 			url = url.replace(/\/[^\/]*$/, "");
 		}
-		jocket._rootUrl = url + "/";
+		if (jocket._urlVersion == 1) {
+			jocket._pollMethod = "GET";
+			jocket._pollUrl = url + "/jocket?s=" + jocket.sessionId;
+			jocket._sendUrl = url + "/jocket?s=" + jocket.sessionId;
+		}
+		else {
+			jocket._pollMethod = "POST";
+			jocket._pollUrl = url + "/poll.jocket?s=" + jocket.sessionId;
+			jocket._sendUrl = url + "/send.jocket?s=" + jocket.sessionId;
+		}
+		jocket._webSocketUrl = url.replace(/^http/, "ws") + "/jocket-ws?s=" + jocket.sessionId;
 		jocket._probing = new Jocket.Polling(jocket);
 		jocket._probing.start();
 	};
@@ -109,9 +181,9 @@ Jocket.prototype.close = function()
 /**
  * Send message to server.
  * 
- * @param data The message body. The data type should be supported by JSON.stringify()
- * @param name [optional] The message name(type). If there are multiple message types, you can either
- *     enclose the type in data, or use the name parameter directly.
+ * @param name [string, required] The message name(type). If there are multiple message types, you can either
+ *     enclose the type in data, or use the name parameter directly. This parameter can be null.
+ * @param data [any, required] The message body. The data type should be supported by JSON.stringify()
  */
 Jocket.prototype.send = function(name, data)
 {
@@ -136,8 +208,8 @@ Jocket.prototype.isOpen = function()
 /**
  * Add event listener
  * 
- * @param name The event name
- * @param listener The event listener (a JavaScript function)
+ * @param name [string, required] The event name
+ * @param listener [function, required] The event listener (a JavaScript function)
  */
 Jocket.prototype.on = Jocket.prototype.addEventListener = function(name, listener)
 {
@@ -279,7 +351,7 @@ Jocket.Ws.prototype.start = function()
 {
 	var ws = this;
 	var jocket = ws.jocket;
-	ws.socket = new WebSocket(jocket._rootUrl.replace(/^http/, "ws") + "jocket-ws?s=" + jocket.sessionId);
+	ws.socket = new WebSocket(jocket._webSocketUrl);
 	ws.socket.onopen = function() {
 		Jocket.logger.debug("WebSocket opened.");
 		ws.ping();
@@ -351,8 +423,9 @@ Jocket.Ws.prototype.sendPacket = function(packet)
 Jocket.Polling = function(jocket)
 {
 	this.jocket = jocket;
-	this.pollUrl = jocket._rootUrl + "poll.jocket?s=" + jocket.sessionId;
-	this.sendUrl = jocket._rootUrl + "send.jocket?s=" + jocket.sessionId;
+	this.pollMethod = jocket._pollMethod;
+	this.pollUrl = jocket._pollUrl;
+	this.sendUrl = jocket._sendUrl;
 	this._timers = {};
 };
 
@@ -433,7 +506,7 @@ Jocket.Polling.prototype.poll = function()
 	ajax.onfailure = function(event, status) {
 		jocket._close(Jocket.CLOSE_POLLING_FAILED, "polling failed");
 	};
-	ajax.submit("POST");
+	ajax.submit(polling.pollMethod);
 };
 
 Jocket.Polling.prototype.sendPacket = function(packet)
