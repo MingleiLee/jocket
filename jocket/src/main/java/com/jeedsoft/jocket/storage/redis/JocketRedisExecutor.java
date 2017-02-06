@@ -80,17 +80,24 @@ public class JocketRedisExecutor
 		}
 	}
 
-	public static long rpush(String key, String values)
+	public static long lpush(String key, String values)
 	{
 		try (Jedis jedis = JocketRedisManager.getJedis()) {
-			return jedis.rpush(key, values);
+			return jedis.lpush(key, values);
 		}
 	}
 
-	public static String lpop(String key)
+	public static String rpop(String key)
 	{
 		try (Jedis jedis = JocketRedisManager.getJedis()) {
-			return jedis.lpop(key);
+			return jedis.rpop(key);
+		}
+	}
+
+	public static String ltrim(String key, long start, long end)
+	{
+		try (Jedis jedis = JocketRedisManager.getJedis()) {
+			return jedis.ltrim(key, start, end);
 		}
 	}
 

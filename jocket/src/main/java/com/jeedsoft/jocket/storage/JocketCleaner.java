@@ -31,7 +31,7 @@ public class JocketCleaner
 			timer.cancel();
 		}
 		timer = new Timer();
-		timer.schedule(new CleanTask(), interval, interval);
+		timer.schedule(new CleanTask(), interval);
 	}
 
 	public static synchronized void stop()
@@ -47,31 +47,44 @@ public class JocketCleaner
 		@Override
 		public void run()
 		{
-			if (!JocketSessionManager.applySchedule()) {
-				return;
-			}
-			List<JocketSession> brokenSessions = JocketSessionManager.checkStore();
-			for (JocketSession session: brokenSessions) {
-				JocketQueueManager.removeSubscriber(session.getId(), true);
-				int code = JocketCloseCode.NO_HEARTBEAT;
-				JocketCloseReason reason = new JocketCloseReason(code, "no new ping");
-				JocketEndpointRunner.doClose(session, reason);
-			}
-			if (logger.isDebugEnabled()) {
-				if (!brokenSessions.isEmpty()) {
-					logger.debug("[Jocket] Removed {} corrupted sessions.", brokenSessions.size());
+			try {
+				logger.trace("[Jocket] Run clean task.");
+				if (timer == null || !JocketSessionManager.applySchedule()) {
+					return;
 				}
-				long now = System.currentTimeMillis();
-				long interval = 60_000;
-				if (now / interval != lastStatMillis / interval) {
-					lastStatMillis = now;
-					Object[] args = {
-						JocketSessionManager.size(),
-						JocketQueueManager.getQueueCount(),
-						JocketConnectionManager.size(),
-						JocketQueueManager.getSubscriberCount(),
-					};
-					logger.debug("[Jocket] Statistics: session={}, queue={}, local connection={}, local subscriber={}", args);
+				List<JocketSession> brokenSessions = JocketSessionManager.checkStore();
+				for (JocketSession session: brokenSessions) {
+					JocketQueueManager.removeSubscriber(session.getId(), true);
+					int code = JocketCloseCode.NO_HEARTBEAT;
+					JocketCloseReason reason = new JocketCloseReason(code, "no new ping");
+					JocketEndpointRunner.doClose(session, reason);
+				}
+				if (logger.isDebugEnabled()) {
+					if (!brokenSessions.isEmpty()) {
+						logger.debug("[Jocket] Removed {} corrupted sessions.", brokenSessions.size());
+					}
+					long now = System.currentTimeMillis();
+					long interval = 60_000;
+					if (now / interval != lastStatMillis / interval) {
+						lastStatMillis = now;
+						Object[] args = {
+							JocketSessionManager.size(),
+							JocketQueueManager.getQueueCount(),
+							JocketConnectionManager.size(),
+							JocketQueueManager.getSubscriberCount(),
+						};
+						logger.debug("[Jocket] Statistics: session={}, queue={}, local connection={}, local subscriber={}", args);
+					}
+				}
+			}
+			catch (Throwable e) {
+				logger.error("[Jocket] Failed to run clean task.", e);
+			}
+			finally {
+				synchronized (JocketCleaner.class) {
+					if (timer != null) {
+						timer.schedule(new CleanTask(), interval);
+					}
 				}
 			}
 		}

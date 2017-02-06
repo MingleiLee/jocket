@@ -175,9 +175,9 @@ public class JocketRedisSessionStore implements JocketSessionStore
 		List<JocketSession> brokenSessions = new ArrayList<>();
 		Set<String> sessionIds = new HashSet<>();
 		for (String key: JocketRedisExecutor.keys(getBaseKeyPattern())) {
-			Map<String, String> map = JocketRedisExecutor.hgetAll(key);
-			if (!map.isEmpty()) {
-				JocketSession session = JocketRedisSession.fromMap(map);
+			Map<String, String> baseData = JocketRedisExecutor.hgetAll(key);
+			if (!baseData.isEmpty()) {
+				JocketSession session = JocketRedisSession.fromMap(baseData);
 				if (session.isBroken()) {
 					JocketSession localSession = remove(session.getId());
 					if (localSession != null) {
@@ -187,6 +187,12 @@ public class JocketRedisSessionStore implements JocketSessionStore
 				else {
 					sessionIds.add(session.getId());
 				}
+			}
+		}
+		for (String key: JocketRedisExecutor.keys(getSessionKeyPattern())) {
+			String sessionId = extractId(key);
+			if (!sessionIds.contains(sessionId)) {
+				JocketRedisExecutor.del(key);
 			}
 		}
 		for (String key: JocketRedisExecutor.keys(getUserKeyPattern())) {
@@ -217,6 +223,11 @@ public class JocketRedisSessionStore implements JocketSessionStore
 		return JocketRedisKey.PREFIX_USER + ":" + userId;
 	}
 
+	private String getSessionKeyPattern()
+	{
+		return JocketRedisKey.PREFIX_SESSION + ":*";
+	}
+
 	private String getBaseKeyPattern()
 	{
 		return JocketRedisKey.PREFIX_SESSION + ":*:" + JocketRedisKey.POSTFIX_BASE;
@@ -227,10 +238,10 @@ public class JocketRedisSessionStore implements JocketSessionStore
 		return JocketRedisKey.PREFIX_USER + ":*";
 	}
 
-	private String extractId(String baseKey)
+	private String extractId(String key)
 	{
-		int end = baseKey.lastIndexOf(':');
-		int start = baseKey.lastIndexOf(':', end - 1) + 1;
-		return baseKey.substring(start, end);
+		int start = JocketRedisKey.PREFIX_SESSION.length() + 1;
+		int end = key.indexOf(':', start);
+		return key.substring(start, end == -1 ? key.length() : end);
 	}
 }

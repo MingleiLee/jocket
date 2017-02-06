@@ -5,13 +5,12 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
 
+import com.jeedsoft.jocket.JocketService;
 import com.jeedsoft.jocket.message.JocketAbstractQueue;
 import com.jeedsoft.jocket.message.JocketPacket;
 
 public class JocketLocalQueue extends JocketAbstractQueue
 {
-	private static final int MAX_QUEUE_SIZE = 1000;
-	
 	private final Map<String, Queue<JocketPacket>> queues = new HashMap<>();
 
 	@Override
@@ -51,7 +50,10 @@ public class JocketLocalQueue extends JocketAbstractQueue
 				queue = new LinkedList<>();
 				queues.put(sessionId, queue);
 			}
-			while (queue.size() >= MAX_QUEUE_SIZE) {
+		}
+		synchronized(queue) {
+			int capacity = JocketService.getQueueCapacity();
+			while (queue.size() >= capacity) {
 				queue.remove();
 			}
 			queue.add(packet);

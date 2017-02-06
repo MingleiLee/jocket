@@ -27,12 +27,17 @@ public class JocketService
 	/**
 	 * The ping interval (milliseconds)
 	 */
-	private static int pingInterval = 25000;
+	private static int pingInterval = 25_000;
 
 	/**
 	 * The timeout (milliseconds) after last ping packet sent
 	 */
-	private static int pingTimeout = 20000;
+	private static int pingTimeout = 20_000;
+
+	/**
+	 * The capacity of queue
+	 */
+	private static int queueCapacity = 1000;
 
 	/**
 	 * Whether the Jocket service is running
@@ -108,6 +113,16 @@ public class JocketService
 	public static int getConnectionTimeout()
 	{
 		return pingInterval + pingTimeout + 5000; //extra 5 seconds
+	}
+
+	public static int getQueueCapacity()
+	{
+		return queueCapacity;
+	}
+
+	public static void setQueueCapacity(int queueCapacity)
+	{
+		JocketService.queueCapacity = queueCapacity;
 	}
 
 	public static boolean isWebSocketEnabled()

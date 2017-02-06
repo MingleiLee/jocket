@@ -72,6 +72,8 @@ public class JocketRedisSubscriber
 	private static class Subscriber extends JedisPubSub
 	{
 		private static final AtomicLong count = new AtomicLong();
+		
+		private static final long checkInterval = 1000;
 
 		private long serial;
 		
@@ -141,11 +143,7 @@ public class JocketRedisSubscriber
 			handshakeTime = 0;
 			reconnectCount = 0;
 			checkTimer = new Timer();
-			checkTimer.schedule(new TimerTask() {
-				public void run() {
-					check();
-				}
-			}, 1000, 1000);
+			checkTimer.schedule(new CheckTask(), checkInterval);
 		}
 
 		@Override
@@ -155,28 +153,36 @@ public class JocketRedisSubscriber
 			close(true);
 		}
 		
-		private synchronized void check()
+		private class CheckTask extends TimerTask
 		{
-			if (closed) {
-				return;
-			}
-			final long silentTimeout = 5000;
-			final long handshakeTimeout = 5000;
-			try {
-				long now = System.currentTimeMillis();
-				if (handshakeTime == 0 && now - lastMessageTime >= silentTimeout) {
-					handshakeTime = now;
-					logger.debug("[Jocket] Publish handshake message to Redis server.");
-					JocketRedisExecutor.publish(channel, new JSONObject().put("type", "handshake").toString());
+			public void run()
+			{
+				synchronized (Subscriber.this) {
+					if (closed) {
+						return;
+					}
+					final long silentTimeout = 5000;
+					final long handshakeTimeout = 5000;
+					try {
+						long now = System.currentTimeMillis();
+						if (handshakeTime == 0 && now - lastMessageTime >= silentTimeout) {
+							handshakeTime = now;
+							logger.debug("[Jocket] Publish handshake message to Redis server.");
+							JocketRedisExecutor.publish(channel, new JSONObject().put("type", "handshake").toString());
+						}
+						else if (handshakeTime > 0 && now - handshakeTime >= handshakeTimeout) {
+							handshakeTime = 0;
+							logger.debug("[Jocket] Redis subscriber handshake timeout.");
+							close(true);
+						}
+					}
+					catch (Throwable e) {
+						logger.error("[Jocket] Failed to check Redis subscriber status", e);
+					}
+					finally {
+						checkTimer.schedule(new CheckTask(), checkInterval);
+					}
 				}
-				else if (handshakeTime > 0 && now - handshakeTime >= handshakeTimeout) {
-					handshakeTime = 0;
-					logger.debug("[Jocket] Redis subscriber handshake timeout.");
-					close(true);
-				}
-			}
-			catch (Throwable e) {
-				logger.error("[Jocket] Failed to check Redis subscriber status", e);
 			}
 		}
 	}

@@ -17,7 +17,9 @@ import com.jeedsoft.jocket.util.JocketStringUtil;
 public class JocketSession
 {
 	private static final Logger logger = LoggerFactory.getLogger(JocketSession.class);
-	
+
+	private static final Logger checkLogger = LoggerFactory.getLogger("com.jeedsoft-jocket.session.CheckBroken");
+
 	public static final String STATUS_NEW			= "new";
 	public static final String STATUS_HANDSHAKING	= "handshaking";
 	public static final String STATUS_OPEN			= "open";
@@ -285,6 +287,12 @@ public class JocketSession
 		//TODO check closed sessions
 		long brokenMillis = JocketService.getPingInterval() + JocketService.getPingTimeout();
 		long heartbeatTime = Math.max(getLastHeartbeatTime(), getStartTime());
-		return heartbeatTime + brokenMillis < System.currentTimeMillis();
+		long now = System.currentTimeMillis();
+		boolean broken = heartbeatTime + brokenMillis < now;
+		if (checkLogger.isTraceEnabled()) {
+			Object[] args = {id, heartbeatTime, brokenMillis, broken};
+			checkLogger.trace("[Jocket] Check broken: sid={}, heartbeat={}, timeout={}, broken={}", args);
+		}
+		return broken;
 	}
 }
