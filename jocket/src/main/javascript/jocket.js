@@ -173,9 +173,9 @@ Jocket.prototype.open = function()
  * 1. A packet with type='close' will be sent to server.
  * 2. The 'close' event listeners bounded to this Jocket object will be invoked. 
  */
-Jocket.prototype.close = function()
+Jocket.prototype.close = function(code)
 {
-	this._close(Jocket.CLOSE_NORMAL, "close by user");
+	this._close(code || Jocket.CLOSE_NORMAL, "close by user");
 };
 
 /**

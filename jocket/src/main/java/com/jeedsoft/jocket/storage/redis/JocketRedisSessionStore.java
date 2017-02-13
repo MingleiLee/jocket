@@ -7,12 +7,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.jeedsoft.jocket.connection.JocketSession;
 import com.jeedsoft.jocket.connection.JocketSessionStore;
 import com.jeedsoft.jocket.util.JocketStringUtil;
 
 public class JocketRedisSessionStore implements JocketSessionStore
 {
+	private static final Logger logger = LoggerFactory.getLogger(JocketRedisSessionStore.class);
+	
 	private long scheduleSerial = 0;
 
 	@Override
@@ -172,6 +177,7 @@ public class JocketRedisSessionStore implements JocketSessionStore
 	@Override
 	public synchronized List<JocketSession> checkStore()
 	{
+		logger.trace("[Jocket] Checking store...");
 		List<JocketSession> brokenSessions = new ArrayList<>();
 		Set<String> sessionIds = new HashSet<>();
 		for (String key: JocketRedisExecutor.keys(getBaseKeyPattern())) {
@@ -189,9 +195,11 @@ public class JocketRedisSessionStore implements JocketSessionStore
 				}
 			}
 		}
+		logger.trace("[Jocket] {} alive sessions, {} broken sessions.", sessionIds.size(), brokenSessions.size());
 		for (String key: JocketRedisExecutor.keys(getSessionKeyPattern())) {
 			String sessionId = extractId(key);
 			if (!sessionIds.contains(sessionId)) {
+				logger.trace("[Jocket] Remove trash data: key={}", key);
 				JocketRedisExecutor.del(key);
 			}
 		}
@@ -200,6 +208,7 @@ public class JocketRedisSessionStore implements JocketSessionStore
 			if (set != null) {
 				for (String sessionId: set) {
 					if (!sessionIds.contains(sessionId)) {
+						logger.trace("[Jocket] Remove from user session set: ukey={}, sid={}", key, sessionId);
 						JocketRedisExecutor.srem(key, sessionId);
 					}
 				}
