@@ -72,7 +72,7 @@ public abstract class JocketAbstractQueue implements JocketQueue
 			new Thread(new EventConsumer(cn, event)).start();
 		}
 		else {
-			logger.debug("[Jocket] No connection found currently: sid={}", sessionId);
+			logger.debug("[Jocket] No connection found currently: sid={}, packet={}", sessionId, event);
 		}
 	}
 
