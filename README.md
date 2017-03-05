@@ -14,12 +14,12 @@ Example (server side)
 
 The code of server side is very like WebSocket endpoint:
 
-    import io.jocket.connection.JocketConnection;
+    import io.jocket.connection.JocketConnection;
     import io.jocket.endpoint.JocketAbstractEndpoint;
     import io.jocket.endpoint.JocketCloseReason;
     import io.jocket.endpoint.JocketEndpoint;
 
-    @JocketEndpoint("/my/chat")
+    @JocketEndpoint("/my/chat")    
     public class MyChat extends JocketAbstractEndpoint
     {
         @Override
