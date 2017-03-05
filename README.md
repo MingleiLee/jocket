@@ -41,7 +41,7 @@ The code of server side is very like WebSocket endpoint:
         }
     }
 
-With an extra line in your startup listener:
+With an extra line on server startup (for example, in WebListener):
 
     JocketDeployer.deploy(MyChat.class);
 
