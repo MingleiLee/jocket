@@ -117,21 +117,26 @@ public class JocketRedisSubscriber
 		@Override
 	    public void onMessage(String channel, String message)
 	    {
-			logger.trace("[Jocket] Message received from Redis: {}", message);
-			lastMessageTime = System.currentTimeMillis();
-			handshakeTime = 0;
-			JSONObject json = new JSONObject(message);
-			if (!json.has("sessionId")) {
-				return;
+			try {
+				logger.trace("[Jocket] Message received from Redis: {}", message);
+				lastMessageTime = System.currentTimeMillis();
+				handshakeTime = 0;
+				JSONObject json = new JSONObject(message);
+				if (!json.has("sessionId")) {
+					return;
+				}
+				String sessionId = json.getString("sessionId");
+				JocketPacket event = JocketPacket.parse(json.optString("event", null));
+				JocketRedisQueue queue = (JocketRedisQueue)JocketQueueManager.getQueue();
+				if (event == null) {
+					queue.notifyNewMessage(sessionId);
+				}
+				else {
+					queue.notifyNewEvent(sessionId, event);
+				}
 			}
-			String sessionId = json.getString("sessionId");
-			JocketPacket event = JocketPacket.parse(json.optString("event", null));
-			JocketRedisQueue queue = (JocketRedisQueue)JocketQueueManager.getQueue();
-			if (event == null) {
-				queue.notifyNewMessage(sessionId);
-			}
-			else {
-				queue.notifyNewEvent(sessionId, event);
+			catch (Throwable e) {
+				logger.error("[Jocket] Failed to handle message:", e);
 			}
 	    }
 

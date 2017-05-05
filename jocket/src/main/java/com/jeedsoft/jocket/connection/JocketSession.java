@@ -288,7 +288,7 @@ public class JocketSession
 		long brokenMillis = JocketService.getPingInterval() + JocketService.getPingTimeout();
 		long heartbeatTime = Math.max(getLastHeartbeatTime(), getStartTime());
 		long now = System.currentTimeMillis();
-		boolean broken = heartbeatTime + brokenMillis < now;
+		boolean broken = now - heartbeatTime > brokenMillis;
 		if (checkLogger.isTraceEnabled()) {
 			Object[] args = {id, heartbeatTime, brokenMillis, broken};
 			checkLogger.trace("[Jocket] Check broken: sid={}, heartbeat={}, timeout={}, broken={}", args);

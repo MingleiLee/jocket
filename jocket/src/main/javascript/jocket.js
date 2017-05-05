@@ -58,14 +58,7 @@ var Jocket = function(options)
 	if (typeof options == "object") {
 		this.options = options;
 		this._urlVersion = options.urlVersion || 2;
-		var server = options.server;
-		if (server == null) {
-    		server = window.location.href.replace(/[\?#].*$/, "");
-    		var index = server.lastIndexOf("/");
-    		if (index > 0 && server.charAt(index - 1) != "/") {
-    			server = server.substring(0, index);
-    		}
-		}
+		var server = options.server || Jocket._getServerUrl();
 		if (this._urlVersion == 1) {
 			this._createUrl = server + options.path + ".jocket";
 		}
@@ -216,6 +209,32 @@ Jocket.prototype.on = Jocket.prototype.addEventListener = function(name, listene
 	this._listeners[name] = this._listeners[name] || [];
 	this._listeners[name].push(listener);
 	return this;
+};
+
+/**
+ * Get server path from current page's URL
+ * 
+ * For example:
+ * 
+ * URL: http://www.abc.com/test?key=value
+ * Server: http://www.abc.com
+ * 
+ * URL: http://www.abc.com/user/list?key=value
+ * Server: http://www.abc.com/user
+ */
+Jocket._getServerUrl = function()
+{
+	// Fortify will complain the following line:
+	// var url = window.location.href.replace(/[\?#].*$/, "");
+	/^([^\?#]+)/.test(window.location.href);
+	var url = RegExp.$1;
+	
+	// Remove the last part of URL
+	index = url.lastIndexOf("/");
+	if (index > 0 && url.charAt(index - 1) != "/") {
+		url = url.substring(0, index);
+	}
+	return url;
 };
 
 Jocket.prototype._close = function(code, message)
