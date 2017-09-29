@@ -7,6 +7,7 @@ import com.jeedsoft.jocket.connection.JocketConnection;
 import com.jeedsoft.jocket.connection.JocketSession;
 import com.jeedsoft.jocket.connection.JocketSessionManager;
 import com.jeedsoft.jocket.storage.local.JocketLocalQueue;
+import com.jeedsoft.jocket.util.JocketClock;
 
 public class JocketQueueManager
 {
@@ -55,7 +56,7 @@ public class JocketQueueManager
 	{
 		if (session != null && session.isOpen()) {
 			if (JocketPacket.TYPE_MESSAGE.equals(message.getType())) {
-				session.setLastMessageTime(System.currentTimeMillis());
+				session.setLastMessageTime(JocketClock.now());
 			}
 			queue.publishMessage(session.getId(), message);
 		}

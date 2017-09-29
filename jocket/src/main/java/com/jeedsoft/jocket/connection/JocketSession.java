@@ -12,6 +12,7 @@ import com.jeedsoft.jocket.endpoint.JocketDeployer;
 import com.jeedsoft.jocket.endpoint.JocketEndpoint;
 import com.jeedsoft.jocket.message.JocketPacket;
 import com.jeedsoft.jocket.message.JocketQueueManager;
+import com.jeedsoft.jocket.util.JocketClock;
 import com.jeedsoft.jocket.util.JocketStringUtil;
 
 public class JocketSession
@@ -132,7 +133,7 @@ public class JocketSession
 		logger.trace("[Jocket] Set status: sid={}, value={}", id, status);
 		this.status = status;
 		if (STATUS_CLOSED.equals(status)) {
-			this.closeTime = System.currentTimeMillis();
+			this.closeTime = JocketClock.now();
 		}
 	}
 
@@ -287,7 +288,7 @@ public class JocketSession
 		//TODO check closed sessions
 		long brokenMillis = JocketService.getPingInterval() + JocketService.getPingTimeout();
 		long heartbeatTime = Math.max(getLastHeartbeatTime(), getStartTime());
-		long now = System.currentTimeMillis();
+		long now = JocketClock.now();
 		boolean broken = now - heartbeatTime > brokenMillis;
 		if (checkLogger.isTraceEnabled()) {
 			Object[] args = {id, heartbeatTime, brokenMillis, broken};

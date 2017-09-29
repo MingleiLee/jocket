@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.jeedsoft.jocket.util.JocketRuntimeException;
+import com.jeedsoft.jocket.util.JocketClock;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.util.Pool;
@@ -17,11 +18,13 @@ public class JocketRedisManager
 	public static void initialize(JocketRedisDataSource ds)
 	{
 		JocketRedisManager.ds = ds;
+		JocketClock.setInstance(new JocketClock.RedisClock());
 	}
 	
 	public static void initialize(Pool<Jedis> pool)
 	{
 		JocketRedisManager.ds = new SimpleDataSource(pool);
+		JocketClock.setInstance(new JocketClock.RedisClock());
 	}
 	
 	public static void destroy()

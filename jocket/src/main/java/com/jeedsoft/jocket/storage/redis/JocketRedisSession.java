@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import com.jeedsoft.jocket.connection.JocketCloseReason;
 import com.jeedsoft.jocket.connection.JocketSession;
 import com.jeedsoft.jocket.connection.JocketSessionManager;
+import com.jeedsoft.jocket.util.JocketClock;
 import com.jeedsoft.jocket.util.JocketJsonUtil;
 import com.jeedsoft.jocket.util.JocketStringUtil;
 
@@ -66,7 +67,7 @@ public class JocketRedisSession extends JocketSession
 		logger.trace("[Jocket] Set status: sid={}, value={}", id, status);
 		store.setBaseData(id, KEY_STATUS, status);
 		if (STATUS_CLOSED.equals(status)) {
-			store.setBaseData(id, KEY_CLOSE_TIME, System.currentTimeMillis() + "");
+			store.setBaseData(id, KEY_CLOSE_TIME, JocketClock.now() + "");
 		}
 	}
 	

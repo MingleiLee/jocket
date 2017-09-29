@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import com.jeedsoft.jocket.message.JocketPacket;
 import com.jeedsoft.jocket.message.JocketQueueManager;
+import com.jeedsoft.jocket.util.JocketClock;
 
 import redis.clients.jedis.JedisPubSub;
 
@@ -119,7 +120,7 @@ public class JocketRedisSubscriber
 	    {
 			try {
 				logger.trace("[Jocket] Message received from Redis: {}", message);
-				lastMessageTime = System.currentTimeMillis();
+				lastMessageTime = JocketClock.now();
 				handshakeTime = 0;
 				JSONObject json = new JSONObject(message);
 				if (!json.has("sessionId")) {
@@ -144,7 +145,7 @@ public class JocketRedisSubscriber
 		public void onSubscribe(String channel, int subscribedChannels)
 		{
 			logger.debug("[Jocket] Redis subscriber start. channel={}, subscribed={}", channel, subscribedChannels);
-			lastMessageTime = System.currentTimeMillis();
+			lastMessageTime = JocketClock.now();
 			handshakeTime = 0;
 			reconnectCount = 0;
 			checkTimer = new Timer();
@@ -169,7 +170,7 @@ public class JocketRedisSubscriber
 					final long silentTimeout = 5000;
 					final long handshakeTimeout = 5000;
 					try {
-						long now = System.currentTimeMillis();
+						long now = JocketClock.now();
 						if (handshakeTime == 0 && now - lastMessageTime >= silentTimeout) {
 							handshakeTime = now;
 							logger.debug("[Jocket] Publish handshake message to Redis server.");

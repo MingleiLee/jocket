@@ -14,6 +14,7 @@ import com.jeedsoft.jocket.connection.JocketSession;
 import com.jeedsoft.jocket.connection.JocketSessionManager;
 import com.jeedsoft.jocket.endpoint.JocketEndpointRunner;
 import com.jeedsoft.jocket.message.JocketQueueManager;
+import com.jeedsoft.jocket.util.JocketClock;
 
 public class JocketCleaner
 {
@@ -63,7 +64,7 @@ public class JocketCleaner
 					if (!brokenSessions.isEmpty()) {
 						logger.debug("[Jocket] Removed {} corrupted sessions.", brokenSessions.size());
 					}
-					long now = System.currentTimeMillis();
+					long now = JocketClock.now();
 					long interval = 60_000;
 					if (now / interval != lastStatMillis / interval) {
 						lastStatMillis = now;

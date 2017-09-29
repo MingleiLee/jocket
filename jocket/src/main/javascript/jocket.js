@@ -101,6 +101,8 @@ var Jocket = function(options)
 	this._reconnectDelayMax = Jocket.util.getProperty("reconnectDelayMax", this.options, 20000);
 	this._reconnectCount = 0;
 	this._listeners = {};
+	this._indices = {instance:++Jocket._instanceCount, connection:0, request:0};
+	Jocket._lastInstance = this;
 	if (this.options.autoOpen != false) {
 		this.open();
 	}
@@ -125,7 +127,8 @@ Jocket.prototype.open = function()
 		throw new Error("Jocket is already opening/open.");
 	}
 	jocket.status = Jocket.STATUS_OPENING;
-	var ajax = new Jocket.Ajax(jocket._createUrl);
+	jocket._indices.connection++;
+	var ajax = jocket._createAjax(jocket._createUrl, "jocket_client");
 	ajax.timeout = 20000;
 	ajax.timeParamName = "jocket_time";
 	ajax.onsuccess = function(response) {
@@ -328,6 +331,15 @@ Jocket.prototype._fire = function(name)
 	}
 };
 
+Jocket.prototype._createAjax = function(url, clientParamName)
+{
+	var indices = this._indices;
+	indices.request++;
+	var key = clientParamName || "c";
+	var value = Jocket._pageId + ":" + indices.instance + "," + indices.connection + "," + indices.request;
+	return new Jocket.Ajax(url + (url.indexOf("?") == -1 ? "?" : "&") + key + "=" + value);
+};
+
 Jocket.STATUS_NEW     = "new";
 Jocket.STATUS_OPENING = "opening";
 Jocket.STATUS_OPEN    = "open";
@@ -350,11 +362,12 @@ Jocket.CLOSE_CONNECT_FAILED    = 3603; //failed to connect to server
 Jocket.CLOSE_PING_TIMEOUT      = 3604; //ping timeout
 Jocket.CLOSE_POLLING_FAILED    = 3605; //polling failed
 
-Jocket.EVENT_OPEN    = "open";
-Jocket.EVENT_CLOSE   = "close";
-Jocket.EVENT_UPGRADE = "upgrade";
-Jocket.EVENT_ERROR   = "error";
-Jocket.EVENT_MESSAGE = "message";
+Jocket.EVENT_OPEN			= "open";
+Jocket.EVENT_CLOSE			= "close";
+Jocket.EVENT_UPGRADE		= "upgrade";
+Jocket.EVENT_ERROR   		= "error";
+Jocket.EVENT_MESSAGE		= "message";
+Jocket.EVENT_BROWSER_CLOSE	= "browserclose";
 
 //-----------------------------------------------------------------------
 // Jocket.Ws
@@ -468,7 +481,7 @@ Jocket.Polling.prototype.destroy = function(code, message)
 		this.active = false;
 		var reason = {code:code, message:message};
 		var packet = {type:Jocket.PACKET_TYPE_CLOSE, data:JSON.stringify(reason)};
-		new Jocket.Ajax(this.sendUrl).submit("POST", packet);
+		jocket._createAjax(this.sendUrl).submit("POST", packet);
 	}
 };
 
@@ -486,13 +499,14 @@ Jocket.Polling.prototype.poll = function()
 {
 	var polling = this;
 	var jocket = polling.jocket;
-	var ajax = new Jocket.Ajax(polling.pollUrl);
+	var ajax = jocket._createAjax(polling.pollUrl);
 	ajax.onsuccess = function(packet) {
 		Jocket.logger.debug("Packet received: sid=%s, transport=polling, packet=%o", jocket.sessionId, packet);
 		if (polling.active) {
 			if (packet.type == Jocket.PACKET_TYPE_CLOSE) {
 				polling.active = false;
-				jocket._close(Jocket.EVENT_CLOSE, JSON.parse(packet.data));
+				var data = JSON.parse(packet.data);
+				jocket._close(data.code, data.message);
 				return;
 			}
 			if (packet.type == Jocket.PACKET_TYPE_PONG) {
@@ -532,7 +546,7 @@ Jocket.Polling.prototype.sendPacket = function(packet)
 {
 	var jocket = this.jocket;
 	Jocket.logger.debug("Packet send: sid=%s, transport=polling, packet=%o", jocket.sessionId, packet);
-	var ajax = new Jocket.Ajax(this.sendUrl);
+	var ajax = jocket._createAjax(this.sendUrl);
 	ajax.onfailure = function(event, status) {
 		Jocket.logger.error("Packet send failed: sid=%s, event=%o, status=%d", jocket.sessionId, event, status);
 		jocket._fire(Jocket.EVENT_ERROR, event);
@@ -560,6 +574,7 @@ Jocket.Ajax = function(url)
 	this.url = url;
 	this.onsuccess = null;
 	this.onfailure = null;
+	this.async = true;
 	this._status = Jocket.Ajax.STATUS_NEW;
 };
 
@@ -633,8 +648,8 @@ Jocket.Ajax.prototype =
 		xhr.ontimeout = Jocket.Ajax.doTimeout;
 		var url = ajax.url;
 		var timeParamName = ajax.timeParamName || "t";
-		url += (url.indexOf("?") == -1 ? "?" : "&") + timeParamName + "=" + Jocket.zipTime.now();
-		xhr.open(method || "GET", url, true);
+		url += (url.indexOf("?") == -1 ? "?" : "&") + timeParamName + "=" + Jocket._digit64.now();
+		xhr.open(method || "GET", url, ajax.async);
 		xhr.setRequestHeader("Cache-Control", "no-store, no-cache");
 		xhr.setRequestHeader("Jocket-Client", "Web");
 		if (ajax.timeout != null) {
@@ -745,7 +760,7 @@ Jocket.logger =
 			console.log.apply(console, arguments);
 		}
 	},
-	
+
 	warn: function()
 	{
 		arguments[0] = Jocket.logger._getPrefix() + arguments[0];
@@ -757,7 +772,7 @@ Jocket.logger =
 		arguments[0] = Jocket.logger._getPrefix() + arguments[0];
 		console.error.apply(console, arguments);
 	},
-	
+
 	_getPrefix: function()
 	{
 		var now = new Date();
@@ -773,28 +788,66 @@ Jocket.logger =
 	}
 };
 
-Jocket.zipTime =
+Jocket._digit64 =
 {
 	digits: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_".split(""),
 
 	serial: 0,
 	
-	previous: 0,
+	previousTime: 0,
 	
 	now: function()
 	{
-		var time = "";
-		var millis = new Date().getTime();
-		while (millis != 0) {
-			time = Jocket.zipTime.digits[millis & 0x3F] + time;
-			millis >>>= 6;
+		var time = Jocket._digit64.zip(new Date().getTime());
+		if (time == Jocket._digit64.previousTime) {
+			return time + "." + Jocket._digit64.serial++;
 		}
-		if (time == Jocket.zipTime.previous) {
-			return time + "." + Jocket.zipTime.serial++;
-		}
-		Jocket.zipTime.previous = time;
-		Jocket.zipTime.serial = 0;
+		Jocket._digit64.previousTime = time;
+		Jocket._digit64.serial = 0;
 		return time;
+	},
+	
+	random: function(count)
+	{
+		var upperBound = 1 << (count * 6);
+		var value = upperBound + Math.floor(Math.random() * upperBound);
+		return Jocket._digit64.zip(value).substring(1);
+	},
+	
+	zip: function(value)
+	{
+		var text = "";
+		while (value != 0) {
+			text = Jocket._digit64.digits[value & 0x3F] + text;
+			value >>>= 6;
+		}
+		return text;
+	}
+};
+
+Jocket._doBeforeUnload = function()
+{
+	Jocket._pageCleanup();
+};
+
+Jocket._doUnload = function()
+{
+	Jocket._pageCleanup();
+};
+
+Jocket._pageCleanup = function()
+{
+	if (Jocket._pageCleaned) {
+		return;
+	}
+	var jocket = Jocket._lastInstance;
+	if (jocket != null) {
+		var ajax = jocket._createAjax(jocket._sendUrl);
+		ajax.async = false;
+		ajax.onsuccess = function() {
+			Jocket._pageCleaned = true;
+		}
+		ajax.submit("POST", {type:Jocket.EVENT_BROWSER_CLOSE});
 	}
 };
 
@@ -805,6 +858,12 @@ Jocket.zipTime =
 (function(){
 	var scripts = document.getElementsByTagName("script");
 	var script = scripts[scripts.length - 1];
+	Jocket._pageId = Jocket._digit64.now() + Jocket._digit64.random(3);
+	Jocket._instanceCount = 0;
+	Jocket._lastInstance = null;
+	Jocket._pageCleaned = false;
 	Jocket.isDebug = /debug=true/.test(script.src);
 	Jocket.logger.debug("Jocket library loaded: debug=%s", Jocket.isDebug);
+	window.addEventListener("beforeunload", Jocket._doBeforeUnload);
+	window.addEventListener("unload", Jocket._doUnload);
 })();

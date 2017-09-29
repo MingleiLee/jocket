@@ -24,6 +24,19 @@ public class JocketRedisExecutor
 		}
 	}
 
+	public static List<String> time()
+	{
+		try (Jedis jedis = JocketRedisManager.getJedis()) {
+			return jedis.time();
+		}
+	}
+
+	public static long currentTimeMillis()
+	{
+		List<String> list = time();
+		return Long.parseLong(list.get(0)) * 1000 + Long.parseLong(list.get(1)) / 1000;
+	}
+
 	public static long del(String... keys)
 	{
 		try (Jedis jedis = JocketRedisManager.getJedis()) {

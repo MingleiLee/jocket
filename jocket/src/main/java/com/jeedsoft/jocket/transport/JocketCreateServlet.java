@@ -20,6 +20,7 @@ import com.jeedsoft.jocket.endpoint.JocketDeployer;
 import com.jeedsoft.jocket.endpoint.JocketEndpointConfig;
 import com.jeedsoft.jocket.util.JocketException;
 import com.jeedsoft.jocket.util.JocketIoUtil;
+import com.jeedsoft.jocket.util.JocketRequestUtil;
 
 @WebServlet(urlPatterns="*.jocket", name="JocketCreateServlet")
 public class JocketCreateServlet extends HttpServlet
@@ -81,7 +82,11 @@ public class JocketCreateServlet extends HttpServlet
 			
 			//set response
 			JocketIoUtil.writeJson(response, result);
-			logger.debug("[Jocket] Session created: sid={}", sessionId);
+			if (logger.isDebugEnabled()) {
+				String userAgent = request.getHeader("User-Agent");
+				String device = JocketRequestUtil.getDevice(userAgent);
+				logger.debug("[Jocket] Session created: sid={}, device={}, userAgent={}", sessionId, device, userAgent);
+			}
 		}
 		catch (JocketException e) {
 			throw new ServletException(e);

@@ -9,6 +9,7 @@ import com.jeedsoft.jocket.endpoint.JocketEndpointRunner;
 import com.jeedsoft.jocket.message.JocketPacket;
 import com.jeedsoft.jocket.message.JocketQueueManager;
 import com.jeedsoft.jocket.storage.local.JocketLocalSessionStore;
+import com.jeedsoft.jocket.util.JocketClock;
 
 public class JocketSessionManager
 {
@@ -30,7 +31,7 @@ public class JocketSessionManager
 	public static String add(JocketSession session)
 	{
 		session.setId(JocketSessionIdGenerator.generate());
-		session.setStartTime(System.currentTimeMillis());
+		session.setStartTime(JocketClock.now());
 		store.add(session);
 		return session.getId();
 	}
@@ -71,7 +72,7 @@ public class JocketSessionManager
 		JocketSession session = post ? get(id) : remove(id);
 		if (session != null) {
 			session.setStatus(JocketSession.STATUS_CLOSED);
-			session.setCloseTime(System.currentTimeMillis());
+			session.setCloseTime(JocketClock.now());
 			if (post) {
 				session.setCloseReason(reason);
 				JocketQueueManager.publishEvent(id, new JocketPacket(JocketPacket.TYPE_CLOSE, null, reason));

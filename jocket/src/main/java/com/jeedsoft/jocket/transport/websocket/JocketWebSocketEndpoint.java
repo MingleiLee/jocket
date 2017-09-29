@@ -22,6 +22,7 @@ import com.jeedsoft.jocket.endpoint.JocketEndpointRunner;
 import com.jeedsoft.jocket.message.JocketPacket;
 import com.jeedsoft.jocket.message.JocketQueueManager;
 import com.jeedsoft.jocket.transport.polling.JocketPollingConnection;
+import com.jeedsoft.jocket.util.JocketClock;
 import com.jeedsoft.jocket.util.JocketCloseException;
 import com.jeedsoft.jocket.util.JocketThreadUtil;
 import com.jeedsoft.jocket.util.JocketWebSocketUtil;
@@ -132,7 +133,7 @@ public class JocketWebSocketEndpoint
 		}
 		else if (JocketPacket.TYPE_PING.equals(type)) {
 			try {
-		        session.setLastHeartbeatTime(System.currentTimeMillis());
+		        session.setLastHeartbeatTime(JocketClock.now());
 				cn.downstream(new JocketPacket(JocketPacket.TYPE_PONG));
 			}
 			catch (Throwable e) {

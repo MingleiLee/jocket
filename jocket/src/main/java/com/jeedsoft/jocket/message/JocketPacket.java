@@ -8,12 +8,13 @@ public class JocketPacket implements Serializable
 {
 	private static final long serialVersionUID = 1L;
 	
-	public static final String TYPE_CLOSE	= "close";
-	public static final String TYPE_PING	= "ping";
-	public static final String TYPE_PONG	= "pong";
-	public static final String TYPE_NOOP	= "noop";
-	public static final String TYPE_UPGRADE = "upgrade";
-	public static final String TYPE_MESSAGE = "message";
+	public static final String TYPE_CLOSE			= "close";
+	public static final String TYPE_PING			= "ping";
+	public static final String TYPE_PONG			= "pong";
+	public static final String TYPE_NOOP			= "noop";
+	public static final String TYPE_UPGRADE			= "upgrade";
+	public static final String TYPE_MESSAGE			= "message";
+	public static final String TYPE_BROWSER_CLOSE	= "browserclose";
 	
 	private String type;
 	
