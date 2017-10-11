@@ -271,7 +271,7 @@ Jocket.prototype._close = function(code, message)
 
 Jocket.prototype._closeTransport = function(transport, code, message)
 {
-	if (transport == this._transport) {
+	if (transport == this._transport || (this._transport == null && transport == this._probing)) {
 		this._close(code, message);
 		return;
 	}
@@ -361,6 +361,7 @@ Jocket.CLOSE_CREATE_FAILED     = 3602; //failed to create Jocket session
 Jocket.CLOSE_CONNECT_FAILED    = 3603; //failed to connect to server
 Jocket.CLOSE_PING_TIMEOUT      = 3604; //ping timeout
 Jocket.CLOSE_POLLING_FAILED    = 3605; //polling failed
+Jocket.CLOSE_PING_FAILED       = 3606; //ping failed
 
 Jocket.EVENT_OPEN			= "open";
 Jocket.EVENT_CLOSE			= "close";
@@ -544,12 +545,18 @@ Jocket.Polling.prototype.poll = function()
 
 Jocket.Polling.prototype.sendPacket = function(packet)
 {
+	var polling = this;
 	var jocket = this.jocket;
 	Jocket.logger.debug("Packet send: sid=%s, transport=polling, packet=%o", jocket.sessionId, packet);
 	var ajax = jocket._createAjax(this.sendUrl);
 	ajax.onfailure = function(event, status) {
 		Jocket.logger.error("Packet send failed: sid=%s, event=%o, status=%d", jocket.sessionId, event, status);
-		jocket._fire(Jocket.EVENT_ERROR, event);
+		if (packet.type == Jocket.PACKET_TYPE_PING) {
+			jocket._closeTransport(polling, Jocket.CLOSE_PING_FAILED, "ping failed");
+		}
+		else {
+			jocket._fire(Jocket.EVENT_ERROR, event);
+		}
 	};
 	ajax.submit("POST", packet);
 };

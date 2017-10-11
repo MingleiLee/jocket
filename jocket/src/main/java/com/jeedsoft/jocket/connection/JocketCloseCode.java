@@ -13,4 +13,5 @@ public class JocketCloseCode
     public static final int CONNECT_FAILED		= 3603; //all available transports failed
     public static final int NO_HEARTBEAT		= 3604; //no heartbeat
     public static final int INVALID_STATUS		= 3605; //invalid status
+    public static final int PING_FAILED			= 3606; //ping failed
 }

@@ -68,7 +68,7 @@ public class JocketSendServlet extends HttpServlet
 				JocketSessionManager.close(sessionId, reason, false);
 			}
 			else if (JocketPacket.TYPE_BROWSER_CLOSE.equals(type)) {
-				logger.debug("[Jocket] User is tring to close the browser: sid={}", sessionId);
+				logger.debug("[Jocket] User is tring to close or reload the browser: sid={}", sessionId);
 			}
 			else {
 				logger.error("[Jocket] Invalid packet type for polling connection: sid={}, type={}", sessionId, type);
