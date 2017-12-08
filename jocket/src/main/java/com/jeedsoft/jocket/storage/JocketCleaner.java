@@ -49,6 +49,7 @@ public class JocketCleaner
 		public void run()
 		{
 			try {
+				Thread.currentThread().setName("JocketCleaner");
 				logger.trace("[Jocket] Run clean task.");
 				if (timer == null || !JocketSessionManager.applySchedule()) {
 					return;

@@ -46,7 +46,7 @@ public class JocketRedisSessionStore implements JocketSessionStore
 		if (!baseData.isEmpty() || !attrData.isEmpty()) {
 			JocketRedisExecutor.del(baseKey, attrKey);
 		}
-		if (!JocketStringUtil.isEmpty(session.getUserId())) {
+		if (session != null && !JocketStringUtil.isEmpty(session.getUserId())) {
 			String key = getUserKey(session.getUserId());
 			JocketRedisExecutor.srem(key, id);
 		}

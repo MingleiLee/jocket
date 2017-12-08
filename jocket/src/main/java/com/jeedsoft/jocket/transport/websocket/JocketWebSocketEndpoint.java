@@ -38,9 +38,10 @@ public class JocketWebSocketEndpoint
 	public void onOpen(Session wsSession, EndpointConfig endpointConfig)
 	{
 		JocketThreadUtil.updateWebSocketThreadName(path + "/open");
+		String sessionId = null;
 		JocketSession session = null;
 		try {
-			String sessionId = JocketWebSocketUtil.getParameter(wsSession, "s");
+			sessionId = JocketWebSocketUtil.getParameter(wsSession, "s");
 			if (sessionId == null) {
 				throw new JocketCloseException(JocketCloseCode.VIOLATED_POLICY, "No Jocket session ID parameter");
 			}
@@ -71,7 +72,12 @@ public class JocketWebSocketEndpoint
 		}
 		catch (JocketCloseException e) {
 			String path = session == null ? "NULL" : session.getRequestPath();
-			logger.error("[Jocket] Failed to open WebSocket connection: path=" + path, e);
+			if (e.getCode() == JocketCloseCode.SESSION_NOT_FOUND) {
+				logger.debug("[Jocket] Session not found: sid=" + sessionId + ", path=" + path, e);
+			}
+			else {
+				logger.error("[Jocket] Failed to open WebSocket connection: sid=" + sessionId + ", path=" + path, e);
+			}
 			JocketWebSocketUtil.close(wsSession, e.getCode(), e.getMessage());
 		}
 	}
@@ -81,6 +87,9 @@ public class JocketWebSocketEndpoint
 	{
 		JocketThreadUtil.updateWebSocketThreadName(path + "/close");
 		JocketWebSocketConnection cn = getConnection(wsSession);
+		if (cn == null) {
+			return;
+		}
 		String sessionId = cn.getSessionId();
 		JocketSession session = null;
 		synchronized (cn) {
@@ -166,7 +175,7 @@ public class JocketWebSocketEndpoint
 	@OnError
 	public void onError(Session wsSession, Throwable e)
 	{
-		logger.error("[Jocket] WebSocket error occurs.", e);
+		logger.debug("[Jocket] WebSocket error occurs.", e);
 	}
 
 	private static JocketWebSocketConnection getConnection(Session wsSession)

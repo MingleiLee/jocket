@@ -17,7 +17,7 @@ public class JocketEndpointRunner
 	
 	public static void doOpen(JocketSession session, HttpSession httpSession)
 	{
-		new Thread(new OpenRunner(session, httpSession)).start();
+		new OpenRunner(session, httpSession).run();
 	}
 
 	public static void doClose(JocketSession session, JocketCloseReason reason)
