@@ -1,0 +1,24 @@
+apply plugin: 'java-library'
+
+group = 'com.jeedsoft'
+archivesBaseName = 'jeedsoft-jocket'
+version = '1.1.8'
+sourceCompatibility = '1.7'
+
+repositories {
+	maven { url 'http://nexus.jeedsoft.com:8081/repository/maven-public/' }
+}
+
+dependencies {
+	compile 'org.slf4j:slf4j-api:1.7.25'
+	compile 'org.json:json:20160212'
+	compile 'javax.websocket:javax.websocket-api:1.1'
+	compile 'javax.servlet:javax.servlet-api:3.1.0'
+	compile 'redis.clients:jedis:2.9.0'
+	testCompile 'junit:junit:4.12'
+}
+
+tasks.withType(JavaCompile) {
+	options.incremental = true
+	options.encoding = 'UTF-8'
+}

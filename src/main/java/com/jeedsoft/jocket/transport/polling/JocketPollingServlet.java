@@ -106,7 +106,7 @@ public class JocketPollingServlet extends HttpServlet
 		        }
 		        else if (JocketSession.STATUS_HANDSHAKING.equals(status)) {
 					JocketEndpointRunner.doOpen(session, request.getSession());
-		    		JocketQueueManager.addSubscriber(cn);
+					JocketQueueManager.addSubscriber(cn);
 					if (logger.isDebugEnabled()) {
 						logger.debug("[Jocket] Jocket opened: sid={}, path={}", sessionId, session.getRequestPath());
 					}
