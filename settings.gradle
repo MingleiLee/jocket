@@ -1,2 +1,3 @@
 include 'jocket-lib'
+include 'jocket-bc'
 include 'jocket-test'

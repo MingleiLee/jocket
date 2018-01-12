@@ -1,0 +1,5 @@
+archivesBaseName = 'jeedsoft-jocket-bc'
+
+dependencies {
+	compile project(':jocket-lib')
+}
