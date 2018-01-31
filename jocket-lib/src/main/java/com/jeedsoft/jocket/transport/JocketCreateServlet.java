@@ -3,13 +3,15 @@ package com.jeedsoft.jocket.transport;
 import java.io.IOException;
 import java.util.Map;
 
-import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.jeedsoft.jocket.util.JocketIdGenerator;
+import com.jeedsoft.jocket.endpoint.JocketEndpointRunner;
+import com.jeedsoft.jocket.util.JocketClock;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,12 +41,16 @@ public class JocketCreateServlet extends HttpServlet
 	@Override
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
 	{
+	    // Get Jocket path
 		String servletPath = request.getServletPath();
 		String path = request.getParameter("jocket_path");
 		if (path == null) {
-			path = servletPath.replaceFirst("\\.jocket.*", ""); //for backward compatibility
+			// For backward compatibility. In old versions, Jocket use the URL path as Jocket path
+			path = servletPath.replaceFirst("\\.jocket.*", "");
 		}
 		logger.debug("[Jocket] Session creating: path={}, query string={}", path, request.getQueryString());
+
+		// Get Jocket configuration
 		JocketEndpointConfig config;
 		try {
 			config = JocketDeployer.getConfig(path);
@@ -52,17 +58,12 @@ public class JocketCreateServlet extends HttpServlet
 		catch (JocketException e) {
 			response.setStatus(404);
 			JocketIoUtil.writeText(response, "Jocket configuration not found.");
+            logger.error("[Jocket] Configuration not found: path=" + path, e);
 			return;
 		}
 		
 		try {
-			JSONObject result = new JSONObject();
-			result.put("pathDepth", servletPath.replaceAll("[^/]+", "").length());
-			result.put("upgrade", JocketService.isWebSocketEnabled());
-			result.put("pingInterval", JocketService.getPingInterval());
-			result.put("pingTimeout", JocketService.getPingTimeout());
-
-			//get parameters
+			// Get parameters
 			Map<String, String> parameters = config.getPathParameterMap(path);
 			for (Map.Entry<String, String[]> entry: request.getParameterMap().entrySet()) {
 				String key = entry.getKey();
@@ -71,25 +72,41 @@ public class JocketCreateServlet extends HttpServlet
 				}
 			}
 			
-			//add session
+			// Create session
+            long now = JocketClock.now();
+            String sessionId = JocketIdGenerator.generate();
 			JocketSession session = new JocketSession();
-			session.setRequestPath(path);
+            session.setId(sessionId);
+            session.setRequestPath(path);
 			session.setHttpSessionId(request.getSession().getId());
 			session.setEndpointClassName(config.getEndpointClassName());
 			session.setParameters(parameters);
-			session.setStatus(JocketSession.STATUS_NEW);
-			String sessionId = JocketSessionManager.add(session);
-			result.put("sessionId", sessionId);
-			
-			//set response
-			JocketIoUtil.writeJson(response, result);
+			session.setStatus(JocketSession.STATUS_OPEN);
+            session.setStartTime(now);
+            session.setLastHeartbeatTime(now);
+			JocketSessionManager.add(session);
 			if (logger.isDebugEnabled()) {
-				String userAgent = request.getHeader("User-Agent");
-				String device = JocketRequestUtil.getDevice(userAgent);
-				logger.debug("[Jocket] Session created: sid={}, device={}, userAgent={}", sessionId, device, userAgent);
+				String ua = request.getHeader("User-Agent");
+				String device = JocketRequestUtil.getDevice(ua);
+				logger.debug("[Jocket] Session created: sid={}, device={}, userAgent={}", sessionId, device, ua);
 			}
+
+			// Invoke callback. For redis compatibility, the session must get from manager to
+			// support methods such as setAttribute()
+			JocketSession theSession = JocketSessionManager.get(sessionId);
+            JocketEndpointRunner.doOpen(theSession, request.getSession());
+
+            // Write HTTP response
+			JSONObject result = new JSONObject();
+			result.put("pathDepth", servletPath.replaceAll("[^/]+", "").length());
+			result.put("upgrade", JocketService.isWebSocketEnabled());
+			result.put("pingInterval", JocketService.getPingInterval());
+			result.put("pingTimeout", JocketService.getPingTimeout());
+			result.put("sessionId", sessionId);
+			JocketIoUtil.writeJson(response, result);
 		}
 		catch (JocketException e) {
+            logger.error("[Jocket] Failed to create session: path=" + path, e);
 			throw new ServletException(e);
 		}
 	}

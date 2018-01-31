@@ -1,18 +1,16 @@
 package com.jeedsoft.jocket.storage.redis;
 
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.atomic.AtomicLong;
-
+import com.jeedsoft.jocket.connection.JocketConnectionManager;
+import com.jeedsoft.jocket.message.JocketConsumer;
+import com.jeedsoft.jocket.util.JocketClock;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.jeedsoft.jocket.message.JocketPacket;
-import com.jeedsoft.jocket.message.JocketQueueManager;
-import com.jeedsoft.jocket.util.JocketClock;
-
 import redis.clients.jedis.JedisPubSub;
+
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class JocketRedisSubscriber
 {
@@ -68,6 +66,14 @@ public class JocketRedisSubscriber
 				}
 			}
 		}, delay);
+	}
+
+	public static void broadcastUpgrade(String sessionId)
+	{
+	    JSONObject json = new JSONObject();
+        json.put("sessionId", sessionId);
+        json.put("isUpgrade", true);
+        JocketRedisExecutor.publish(channel, json.toString());
 	}
 
 	private static class Subscriber extends JedisPubSub
@@ -127,14 +133,13 @@ public class JocketRedisSubscriber
 					return;
 				}
 				String sessionId = json.getString("sessionId");
-				JocketPacket event = JocketPacket.parse(json.optString("event", null));
-				JocketRedisQueue queue = (JocketRedisQueue)JocketQueueManager.getQueue();
-				if (event == null) {
-					queue.notifyNewMessage(sessionId);
-				}
-				else {
-					queue.notifyNewEvent(sessionId, event);
-				}
+				boolean isUpgrade = json.optBoolean("isUpgrade");
+				if (isUpgrade) {
+                    JocketConnectionManager.upgrade(sessionId);
+                }
+                else {
+                    JocketConsumer.notify(sessionId);
+                }
 			}
 			catch (Throwable e) {
 				logger.error("[Jocket] Failed to handle message:", e);

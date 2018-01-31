@@ -1,17 +1,16 @@
 package com.jeedsoft.chat;
 
-import javax.servlet.ServletContext;
-import javax.servlet.ServletContextEvent;
-import javax.servlet.ServletContextListener;
-import javax.servlet.annotation.WebListener;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.jeedsoft.jocket.JocketService;
 import com.jeedsoft.jocket.endpoint.JocketDeployer;
 import com.jeedsoft.jocket.endpoint.JocketEndpoint;
 import com.jeedsoft.jocket.util.JocketException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.servlet.ServletContext;
+import javax.servlet.ServletContextEvent;
+import javax.servlet.ServletContextListener;
+import javax.servlet.annotation.WebListener;
 
 @WebListener
 public class StartupListener implements ServletContextListener

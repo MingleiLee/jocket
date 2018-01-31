@@ -4,7 +4,7 @@ import org.json.JSONObject;
 
 public class JocketCloseReason
 {
-    private int code = JocketCloseCode.NORMAL;
+    private int code;
     
     private String message;
     

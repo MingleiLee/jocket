@@ -346,7 +346,7 @@ public enum Browser {
 		this.id =  (short) ( ( manufacturer.getId() << 8) + (byte) versionId);
 		this.name = name;
 		this.parent = parent;
-		this.children = new ArrayList<Browser>();
+		this.children = new ArrayList<>();
 		this.aliases = Utils.toLowerCase(aliases);
 		this.excludeList = Utils.toLowerCase(exclude);
 		this.browserType = browserType;
@@ -363,7 +363,7 @@ public enum Browser {
   // create collection of top level browsers during initialization
 	private static void addTopLevelBrowser(Browser browser) {
 		if(topLevelBrowsers == null)
-			topLevelBrowsers = new ArrayList<Browser>();
+			topLevelBrowsers = new ArrayList<>();
 		topLevelBrowsers.add(browser);
 	}
 

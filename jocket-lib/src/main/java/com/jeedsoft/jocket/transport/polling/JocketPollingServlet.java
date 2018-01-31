@@ -1,6 +1,13 @@
 package com.jeedsoft.jocket.transport.polling;
 
-import java.io.IOException;
+import com.jeedsoft.jocket.JocketService;
+import com.jeedsoft.jocket.connection.*;
+import com.jeedsoft.jocket.message.JocketPacket;
+import com.jeedsoft.jocket.util.JocketIoUtil;
+import com.jeedsoft.jocket.util.JocketRequestUtil;
+import com.jeedsoft.jocket.util.JocketStringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.servlet.AsyncContext;
 import javax.servlet.AsyncEvent;
@@ -10,22 +17,7 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.jeedsoft.jocket.JocketService;
-import com.jeedsoft.jocket.connection.JocketCloseCode;
-import com.jeedsoft.jocket.connection.JocketCloseReason;
-import com.jeedsoft.jocket.connection.JocketConnectionManager;
-import com.jeedsoft.jocket.connection.JocketSession;
-import com.jeedsoft.jocket.connection.JocketSessionManager;
-import com.jeedsoft.jocket.endpoint.JocketEndpointRunner;
-import com.jeedsoft.jocket.message.JocketPacket;
-import com.jeedsoft.jocket.message.JocketQueueManager;
-import com.jeedsoft.jocket.util.JocketException;
-import com.jeedsoft.jocket.util.JocketIoUtil;
-import com.jeedsoft.jocket.util.JocketRequestUtil;
+import java.io.IOException;
 
 @WebServlet(urlPatterns="/poll.jocket", name="JocketPollingServlet", asyncSupported=true)
 public class JocketPollingServlet extends HttpServlet
@@ -47,14 +39,18 @@ public class JocketPollingServlet extends HttpServlet
 			if (logger.isTraceEnabled()) {
 				String params = JocketRequestUtil.getQueryStringWithoutSessionId(request);
 				logger.trace("[Jocket] Polling start: sid={}, params=[{}]", sessionId, params);
+                String confirmPacketId = request.getParameter("p");
+                if (!JocketStringUtil.isEmpty(confirmPacketId)) {
+                    logger.trace("[Jocket] Message confirmed: sid={}, packetId={}", sessionId, confirmPacketId);
+                }
 			}
 
-			//get session and check status
+			// Get session and check status
 			JocketSession session = JocketSessionManager.get(sessionId);
 			if (session == null) {
 				int code = JocketCloseCode.SESSION_NOT_FOUND;
 				JocketCloseReason reason = new JocketCloseReason(code, "session not found");
-				JocketPacket packet = new JocketPacket(JocketPacket.TYPE_CLOSE, null, reason);
+				JocketPacket packet = new JocketPacket(JocketPacket.TYPE_CLOSE, reason);
 				JocketIoUtil.writeJson(response, packet.toJson());
 				return;
 			}
@@ -62,59 +58,19 @@ public class JocketPollingServlet extends HttpServlet
 			if (JocketSession.STATUS_CLOSED.equals(status)) {
 				logger.debug("[Jocket] Already closed: sid={}", sessionId);
 				JocketCloseReason reason = session.getCloseReason();
-				JocketPacket packet = new JocketPacket(JocketPacket.TYPE_CLOSE, null, reason);
+				JocketPacket packet = new JocketPacket(JocketPacket.TYPE_CLOSE, reason);
 				JocketIoUtil.writeJson(response, packet.toJson());
 				JocketSessionManager.remove(sessionId);
 				return;
 			}
 
-			if (session.isConnected()) {
-				logger.debug("[Jocket] Already connected: sid={}", sessionId);
-				JocketPacket packet = new JocketPacket(JocketPacket.TYPE_NOOP);
-				JocketIoUtil.writeJson(response, packet.toJson());
-				return;
-			}
-
-			//update status
-	        if (JocketSession.STATUS_NEW.equals(status)) {
-	        	session.setStatus(JocketSession.STATUS_HANDSHAKING);
-	        }
-	        else if (JocketSession.STATUS_HANDSHAKING.equals(status)) {
-				session.setStatus(JocketSession.STATUS_OPEN);
-	        }
-
-			//start the async context
+			// start the async context
 			request.setAttribute("org.apache.catalina.ASYNC_SUPPORTED", true);
 			AsyncContext context = request.startAsync();
 			JocketPollingConnection cn = new JocketPollingConnection(session, context);
 	        context.addListener(new JocketPollingAsyncListener(cn));
 	        context.setTimeout(JocketService.getConnectionTimeout());
-			
-	        synchronized (cn) {
-		        JocketConnectionManager.add(cn);
-		        //return PONG when waiting for heartbeat
-				if (session.isHeartbeating()) {
-					logger.trace("[Jocket] Jocket is waiting for handshaking: sid={}", sessionId);
-					session.setHeartbeating(false);
-					JocketPacket packet = new JocketPacket(JocketPacket.TYPE_PONG);
-					cn.downstream(packet);
-					return;
-				}
-				
-		        if (JocketSession.STATUS_OPEN.equals(status)) {
-		    		JocketQueueManager.addSubscriber(cn);
-		        }
-		        else if (JocketSession.STATUS_HANDSHAKING.equals(status)) {
-					JocketEndpointRunner.doOpen(session, request.getSession());
-					JocketQueueManager.addSubscriber(cn);
-					if (logger.isDebugEnabled()) {
-						logger.debug("[Jocket] Jocket opened: sid={}, path={}", sessionId, session.getRequestPath());
-					}
-		        }
-		        else if (!JocketSession.STATUS_NEW.equals(status)) {
-		        	throw new JocketException("Invalid status: " + status);
-		        }
-	        }
+			JocketConnectionManager.add(cn);
 		}
 		catch (Exception e) {
 			logger.error("[Jocket] HTTP polling failed: sid=" + sessionId, e);
@@ -134,8 +90,13 @@ public class JocketPollingServlet extends HttpServlet
 		@Override
 		public void onTimeout(AsyncEvent event) throws IOException
 		{
-			logger.trace("[Jocket] Polling timeout. sid={}", cn.getSessionId());
-			cn.downstream(new JocketPacket(JocketPacket.TYPE_NOOP));
+		    String sessionId = cn.getSessionId();
+			logger.trace("[Jocket] Polling timeout. sid={}", sessionId);
+            JocketCloseReason reason = new JocketCloseReason(JocketCloseCode.NO_HEARTBEAT, "no heartbeat");
+			JocketPacket packet = new JocketPacket(JocketPacket.TYPE_CLOSE, reason);
+			if (cn.downstream(packet)) {
+                JocketSessionManager.close(sessionId, reason, false);
+            }
 		}
 
 		@Override

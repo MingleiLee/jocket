@@ -2,11 +2,13 @@ package com.jeedsoft.jocket.storage.redis;
 
 public class JocketRedisKey
 {
-	public static final String PREFIX_SESSION	= "Jocket:Session";
-	public static final String PREFIX_USER		= "Jocket:User";
-	public static final String POSTFIX_BASE		= "Base";
-	public static final String POSTFIX_ATTR		= "Attr";
-	public static final String POSTFIX_QUEUE	= "Queue";
+	public static final String PREFIX_SESSION			= "Jocket:Session";
+	public static final String PREFIX_USER				= "Jocket:User";
+	public static final String POSTFIX_BASE				= "Base";
+	public static final String POSTFIX_ATTR				= "Attr";
+	public static final String POSTFIX_QUEUE			= "Queue";
+	public static final String POSTFIX_QUEUE_EVENT		= "Queue:Event";
+	public static final String POSTFIX_QUEUE_MESSAGE	= "Queue:Message";
 
 	public static final String TIMER			= "Jocket:Timer";
 	

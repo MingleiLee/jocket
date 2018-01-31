@@ -1,31 +1,17 @@
 package com.jeedsoft.jocket.transport.websocket;
 
-import javax.websocket.CloseReason;
-import javax.websocket.EndpointConfig;
-import javax.websocket.OnClose;
-import javax.websocket.OnError;
-import javax.websocket.OnMessage;
-import javax.websocket.OnOpen;
-import javax.websocket.Session;
-import javax.websocket.server.ServerEndpoint;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.jeedsoft.jocket.JocketService;
-import com.jeedsoft.jocket.connection.JocketCloseCode;
-import com.jeedsoft.jocket.connection.JocketCloseReason;
-import com.jeedsoft.jocket.connection.JocketConnectionManager;
-import com.jeedsoft.jocket.connection.JocketSession;
-import com.jeedsoft.jocket.connection.JocketSessionManager;
+import com.jeedsoft.jocket.connection.*;
 import com.jeedsoft.jocket.endpoint.JocketEndpointRunner;
 import com.jeedsoft.jocket.message.JocketPacket;
 import com.jeedsoft.jocket.message.JocketQueueManager;
-import com.jeedsoft.jocket.transport.polling.JocketPollingConnection;
-import com.jeedsoft.jocket.util.JocketClock;
-import com.jeedsoft.jocket.util.JocketCloseException;
-import com.jeedsoft.jocket.util.JocketThreadUtil;
-import com.jeedsoft.jocket.util.JocketWebSocketUtil;
+import com.jeedsoft.jocket.util.*;
+import org.json.JSONArray;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.websocket.*;
+import javax.websocket.server.ServerEndpoint;
 
 @ServerEndpoint("/jocket-ws")
 public class JocketWebSocketEndpoint
@@ -52,9 +38,6 @@ public class JocketWebSocketEndpoint
 			String status = session.getStatus();
 			if (!JocketSession.STATUS_OPEN.equals(status) && !JocketSession.STATUS_HANDSHAKING.equals(status)) {
 				throw new JocketCloseException(JocketCloseCode.INVALID_STATUS, "Invalid status: " + status);
-			}
-			if (session.isUpgraded()) {
-				throw new JocketCloseException(JocketCloseCode.VIOLATED_POLICY, "Jocket is already upgraded");
 			}
 			if (JocketConnectionManager.getProbing(sessionId) != null) {
 				throw new JocketCloseException(JocketCloseCode.VIOLATED_POLICY, "Jocket is already probing");
@@ -119,53 +102,41 @@ public class JocketWebSocketEndpoint
 		JocketWebSocketConnection cn = getConnection(wsSession);
 		String sessionId = cn.getSessionId();
 		logger.trace("[Jocket] Packet received: sid={}, packet={}", sessionId, text);
-		JocketSession session = JocketSessionManager.get(sessionId);
-		while (session != null && JocketSession.STATUS_HANDSHAKING.equals(session.getStatus())) {
-			try {
-				logger.trace("[Jocket] Waiting for handshaking. sid={}", sessionId);
-				Thread.sleep(1000);
-			}
-			catch (InterruptedException e) {
-				logger.error("[Jocket] Failed to wait for handshaking. sid={}", sessionId);
-			}
-			session = JocketSessionManager.get(sessionId);
+
+		JocketPacket packet = JocketPacket.parse(text);
+        String type = packet.getType();
+		if (type.equals(JocketPacket.TYPE_CONFIRM)) {
+            logger.trace("[Jocket] Message confirmed: sid={}, packetId={}", sessionId, packet.getData());
+            return;
 		}
+        else if (type.equals(JocketPacket.TYPE_LOG)) {
+            JocketClientLogger.log(sessionId, new JSONArray(packet.getData()));
+            return;
+        }
+
+		JocketSession session = JocketSessionManager.get(sessionId);
 		if (session == null) {
 			logger.error("[Jocket] Session not found: sid={}", sessionId);
 			JocketWebSocketUtil.close(wsSession, JocketCloseCode.SESSION_NOT_FOUND, "session not found");
 			return;
 		}
-		JocketPacket packet = JocketPacket.parse(text);
-		String type = packet.getType();
-		if (JocketPacket.TYPE_MESSAGE.equals(type)) {
+
+		if (type.equals(JocketPacket.TYPE_MESSAGE)) {
 			JocketEndpointRunner.doMessage(session, packet);
 		}
-		else if (JocketPacket.TYPE_PING.equals(type)) {
+		else if (type.equals(JocketPacket.TYPE_PING)) {
 			try {
-		        session.setLastHeartbeatTime(JocketClock.now());
+                if (JocketConnectionManager.isUpgraded(sessionId)) {
+                    session.setLastHeartbeatTime(JocketClock.now());
+                }
 				cn.downstream(new JocketPacket(JocketPacket.TYPE_PONG));
 			}
 			catch (Throwable e) {
 				logger.error("[Jocket] Failed to send PONG packet to client: sid=" + sessionId, e);
 			}
 		}
-		else if (JocketPacket.TYPE_UPGRADE.equals(packet.getType())) {
-			synchronized (cn) {
-				if (cn.isActive()) {
-					logger.debug("[Jocket] Upgrade the transport to WebSocket: sid={}", sessionId);
-					session.setStatus(JocketSession.STATUS_OPEN);
-					JocketConnectionManager.removeProbing(sessionId);
-					JocketPollingConnection pc = (JocketPollingConnection)JocketConnectionManager.remove(sessionId);
-					JocketConnectionManager.add(cn);
-					JocketQueueManager.addSubscriber(cn);
-					if (pc == null) {
-						JocketQueueManager.publishEvent(sessionId, new JocketPacket(JocketPacket.TYPE_UPGRADE));
-					}
-					else {
-						pc.closeOnUpgrade();
-					}
-				}
-			}
+		else if (type.equals(JocketPacket.TYPE_UPGRADE)) {
+            JocketQueueManager.publish(sessionId, new JocketPacket(JocketPacket.TYPE_UPGRADE));
 		}
 		else {
 			logger.error("[Jocket] Invalid packet type for WebSocket connection: sid={}, type={}", sessionId, type);

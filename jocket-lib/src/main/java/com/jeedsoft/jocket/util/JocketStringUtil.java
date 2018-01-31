@@ -60,7 +60,7 @@ public class JocketStringUtil
 	private static String escape(String s, boolean[] mask)
 	{
 		if (s == null) {
-			return s;
+			return null;
 		}
 		StringBuilder sb = new StringBuilder(10 * s.length() / 9);
 		for (int i = 0, n = s.length(); i < n; ++i) {

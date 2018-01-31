@@ -28,9 +28,6 @@ public class JocketRedisSession extends JocketSession
 	private static final String KEY_HTTP_SESSION_ID		= "httpSessionId";
 	private static final String KEY_USER_ID				= "userId";
 	private static final String KEY_STATUS				= "status";
-	private static final String KEY_UPGRADED			= "upgraded";
-	private static final String KEY_CONNECTED			= "connected";
-	private static final String KEY_HEARTBEATING		= "heartbeating";
 	private static final String KEY_START_TIME			= "startTime";
 	private static final String KEY_CLOSE_TIME			= "closeTime";
 	private static final String KEY_LAST_HEARTBEAT_TIME	= "lastHeartbeatTime";
@@ -69,43 +66,6 @@ public class JocketRedisSession extends JocketSession
 		if (STATUS_CLOSED.equals(status)) {
 			store.setBaseData(id, KEY_CLOSE_TIME, JocketClock.now() + "");
 		}
-	}
-	
-	@Override
-	public boolean isUpgraded()
-	{
-		return Boolean.parseBoolean(store.getBaseData(id, KEY_UPGRADED));
-	}
-
-	@Override
-	public void setUpgraded(boolean upgraded)
-	{
-		store.setBaseData(id, KEY_UPGRADED, Boolean.toString(upgraded));
-	}
-
-	@Override
-	public boolean isConnected()
-	{
-		return Boolean.parseBoolean(store.getBaseData(id, KEY_CONNECTED));
-	}
-
-	@Override
-	public void setConnected(boolean connected)
-	{
-		store.setBaseData(id, KEY_CONNECTED, Boolean.toString(connected));
-	}
-
-	@Override
-	public boolean isHeartbeating()
-	{
-		return Boolean.parseBoolean(store.getBaseData(id, KEY_HEARTBEATING));
-	}
-
-	@Override
-	public void setHeartbeating(boolean heartbeating)
-	{
-		logger.trace("[Jocket] Set heartbeating: sid={}, value={}", id, heartbeating);
-		store.setBaseData(id, KEY_HEARTBEATING, Boolean.toString(heartbeating));
 	}
 
 	@Override
@@ -206,9 +166,6 @@ public class JocketRedisSession extends JocketSession
 		session.setHttpSessionId(baseData.get(KEY_HTTP_SESSION_ID));
 		session.setUserId(baseData.get(KEY_USER_ID));
 		session.setStatus(baseData.get(KEY_STATUS));
-		session.setUpgraded(Boolean.parseBoolean(baseData.get(KEY_UPGRADED)));
-		session.setConnected(Boolean.parseBoolean(baseData.get(KEY_CONNECTED)));
-		session.setHeartbeating(Boolean.parseBoolean(baseData.get(KEY_HEARTBEATING)));
 		session.setStartTime(getLong(baseData, KEY_START_TIME));
 		session.setCloseTime(getLong(baseData, KEY_CLOSE_TIME));
 		session.setLastHeartbeatTime(getLong(baseData, KEY_LAST_HEARTBEAT_TIME));
@@ -230,9 +187,6 @@ public class JocketRedisSession extends JocketSession
 		put(map, KEY_HTTP_SESSION_ID, session.getHttpSessionId());
 		put(map, KEY_USER_ID, session.getUserId());
 		put(map, KEY_STATUS, session.getStatus());
-		put(map, KEY_UPGRADED, session.isUpgraded());
-		put(map, KEY_CONNECTED, session.isConnected());
-		put(map, KEY_HEARTBEATING, session.isHeartbeating());
 		put(map, KEY_START_TIME, session.getStartTime(), df);
 		put(map, KEY_CLOSE_TIME, session.getCloseTime(), df);
 		put(map, KEY_LAST_HEARTBEAT_TIME, session.getLastHeartbeatTime(), df);

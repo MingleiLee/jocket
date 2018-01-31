@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import javax.websocket.Session;
 
+import com.jeedsoft.jocket.util.JocketIdGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,15 +37,20 @@ public class JocketWebSocketConnection extends JocketConnection
 	}
 
 	@Override
-	public synchronized void downstream(JocketPacket packet) throws IOException
+	public synchronized boolean downstream(JocketPacket packet) throws IOException
 	{
 		String sessionId = getSessionId();
 		if (isActive()) {
+			if (packet.getType().equals(JocketPacket.TYPE_MESSAGE)) {
+				packet.setId(JocketIdGenerator.generate());
+			}
 			logger.debug("[Jocket] Send message to client: transport=websocket, sid={}, packet={}", sessionId, packet);
 			wsSession.getBasicRemote().sendText(packet.toJson().toString());
+			return true;
 		}
 		else {
 			logger.warn("[Jocket] WebSocket connection is closed: sid={}, packet={}", sessionId, packet);
+			return false;
 		}
 	}
 

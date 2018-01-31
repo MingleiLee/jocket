@@ -11,7 +11,7 @@ public class Jocket
 	public static void send(String sessionId, String name, Object data)
 	{
 		JocketPacket packet = new JocketPacket(JocketPacket.TYPE_MESSAGE, name, data);
-		JocketQueueManager.publishMessage(sessionId, packet);
+		JocketQueueManager.publish(sessionId, packet);
 	}
 
 	public static void close(String sessionId, int code, String message)

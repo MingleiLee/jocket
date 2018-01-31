@@ -2,6 +2,7 @@ package com.jeedsoft.jocket;
 
 import javax.servlet.ServletContext;
 
+import com.jeedsoft.jocket.storage.redis.JocketRedisQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -139,4 +140,9 @@ public class JocketService
 	{
 		return isRunning;
 	}
+
+    public static boolean isCluster()
+    {
+        return JocketQueueManager.getQueue() instanceof JocketRedisQueue;
+    }
 }

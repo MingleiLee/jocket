@@ -93,26 +93,40 @@ public class JocketRedisExecutor
 		}
 	}
 
-	public static long lpush(String key, String values)
+	public static long llen(String key)
 	{
 		try (Jedis jedis = JocketRedisManager.getJedis()) {
-			return jedis.lpush(key, values);
+			return jedis.llen(key);
 		}
 	}
 
-	public static String rpop(String key)
-	{
-		try (Jedis jedis = JocketRedisManager.getJedis()) {
-			return jedis.rpop(key);
-		}
-	}
+    public static List<String> lrange(String key, int start, int stop)
+    {
+        try (Jedis jedis = JocketRedisManager.getJedis()) {
+            return jedis.lrange(key, start, stop);
+        }
+    }
 
-	public static String ltrim(String key, long start, long end)
-	{
-		try (Jedis jedis = JocketRedisManager.getJedis()) {
-			return jedis.ltrim(key, start, end);
-		}
-	}
+    public static String ltrim(String key, long start, long end)
+    {
+        try (Jedis jedis = JocketRedisManager.getJedis()) {
+            return jedis.ltrim(key, start, end);
+        }
+    }
+
+    public static long lpush(String key, String values)
+    {
+        try (Jedis jedis = JocketRedisManager.getJedis()) {
+            return jedis.lpush(key, values);
+        }
+    }
+
+    public static String rpop(String key)
+    {
+        try (Jedis jedis = JocketRedisManager.getJedis()) {
+            return jedis.rpop(key);
+        }
+    }
 
 	public static Map<String, String> hgetAll(String key)
 	{
@@ -168,7 +182,7 @@ public class JocketRedisExecutor
 		Object v		= list.get(1);
 		boolean success	= (Long)list.get(0) == 1;
 		long value		= v == null ? 0 : v instanceof Long ? (Long)v : Long.parseLong((String)v);
-		return new JocketCasResult<Long>(success, value);
+		return new JocketCasResult<>(success, value);
 	}
 
 	@SuppressWarnings("unchecked")

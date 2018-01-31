@@ -1,20 +1,15 @@
 package com.jeedsoft.jocket.storage;
 
-import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.jeedsoft.jocket.connection.JocketCloseCode;
-import com.jeedsoft.jocket.connection.JocketCloseReason;
-import com.jeedsoft.jocket.connection.JocketConnectionManager;
-import com.jeedsoft.jocket.connection.JocketSession;
-import com.jeedsoft.jocket.connection.JocketSessionManager;
+import com.jeedsoft.jocket.connection.*;
 import com.jeedsoft.jocket.endpoint.JocketEndpointRunner;
 import com.jeedsoft.jocket.message.JocketQueueManager;
 import com.jeedsoft.jocket.util.JocketClock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class JocketCleaner
 {
@@ -56,7 +51,8 @@ public class JocketCleaner
 				}
 				List<JocketSession> brokenSessions = JocketSessionManager.checkStore();
 				for (JocketSession session: brokenSessions) {
-					JocketQueueManager.removeSubscriber(session.getId(), true);
+					// TODO close session ?
+                    JocketConnectionManager.remove(session.getId());
 					int code = JocketCloseCode.NO_HEARTBEAT;
 					JocketCloseReason reason = new JocketCloseReason(code, "no new ping");
 					JocketEndpointRunner.doClose(session, reason);
@@ -73,9 +69,8 @@ public class JocketCleaner
 							JocketSessionManager.size(),
 							JocketQueueManager.getQueueCount(),
 							JocketConnectionManager.size(),
-							JocketQueueManager.getSubscriberCount(),
 						};
-						logger.debug("[Jocket] Statistics: session={}, queue={}, local connection={}, local subscriber={}", args);
+						logger.debug("[Jocket] Statistics: session={}, queue={}, local connection={}", args);
 					}
 				}
 			}

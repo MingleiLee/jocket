@@ -28,17 +28,15 @@ public class JocketSessionManager
 		logger.debug("[Jocket] Session store class: {}", store.getClass().getName());
 	}
 
-	public static String add(JocketSession session)
+	public static void add(JocketSession session)
 	{
-		session.setId(JocketSessionIdGenerator.generate());
-		session.setStartTime(JocketClock.now());
 		store.add(session);
-		return session.getId();
 	}
 
 	public static JocketSession remove(String id)
 	{
-		JocketQueueManager.removeSubscriber(id, true);
+        JocketConnectionManager.remove(id);
+	    JocketQueueManager.clear(id);
 		return store.remove(id);
 	}
 
@@ -75,7 +73,7 @@ public class JocketSessionManager
 			session.setCloseTime(JocketClock.now());
 			if (post) {
 				session.setCloseReason(reason);
-				JocketQueueManager.publishEvent(id, new JocketPacket(JocketPacket.TYPE_CLOSE, null, reason));
+				JocketQueueManager.publish(id, new JocketPacket(JocketPacket.TYPE_CLOSE, reason));
 			}
 			JocketEndpointRunner.doClose(session, reason);
 		}

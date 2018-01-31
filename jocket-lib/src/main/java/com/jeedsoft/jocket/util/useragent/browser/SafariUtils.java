@@ -174,7 +174,7 @@ public class SafariUtils {
 	private static final Map<String, Version> safariVersions;
 	
 	static {
-		Map<String, Version> versions = new HashMap<String, Version>();
+		Map<String, Version> versions = new HashMap<>();
 		for (String[] pair : webKitToSafariVersion) {
 			String webKitVersion = pair[0];
 			String browserVersion = pair[1];

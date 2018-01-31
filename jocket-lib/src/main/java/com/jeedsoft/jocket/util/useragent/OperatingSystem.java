@@ -227,7 +227,7 @@ public enum OperatingSystem {
         String[] exclude, DeviceType deviceType, String versionRegexString) {
         this.manufacturer = manufacturer;
         this.parent = parent;
-        this.children = new ArrayList<OperatingSystem>();
+        this.children = new ArrayList<>();
         // combine manufacturer and version id to one unique id.
         this.id = (short) ((manufacturer.getId() << 8) + (byte) versionId);
         this.name = name;
@@ -243,7 +243,7 @@ public enum OperatingSystem {
 	// create collection of top level operating systems during initialization
 	private static void addTopLevelOperatingSystem(OperatingSystem os) {
 		if(topLevelOperatingSystems == null)
-			topLevelOperatingSystems = new ArrayList<OperatingSystem>();	
+			topLevelOperatingSystems = new ArrayList<>();
 		topLevelOperatingSystems.add(os);
 	}
 	

@@ -82,7 +82,7 @@ public class JocketRedisSessionStore implements JocketSessionStore
 	public synchronized boolean contains(String id)
 	{
 		String key = getBaseKey(id);
-		return JocketRedisExecutor.exists(key); //TODO exclude closed sessions?
+		return JocketRedisExecutor.exists(key); // TODO exclude closed sessions?
 	}
 
 	@Override

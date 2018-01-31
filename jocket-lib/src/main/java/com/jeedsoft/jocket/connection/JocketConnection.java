@@ -6,7 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.jeedsoft.jocket.message.JocketPacket;
-import com.jeedsoft.jocket.transport.polling.JocketPollingConnection;
 
 public abstract class JocketConnection
 {
@@ -50,13 +49,12 @@ public abstract class JocketConnection
 	{
 		String type = event.getType();
 		String sessionId = getSessionId();
-		if (JocketPacket.TYPE_PING.equals(type)) {
+		if (JocketPacket.TYPE_PONG.equals(type) || JocketPacket.TYPE_UPGRADE.equals(type)) {
 			try {
-				session.setHeartbeating(false);
-				downstream(new JocketPacket(JocketPacket.TYPE_PONG));
+				downstream(event);
 			}
 			catch (IOException e) {
-				logger.error("[Jocket] Failed to send PONG to client: sid=" + sessionId, e);
+				logger.error("[Jocket] Failed to send to client: sid=" + sessionId + ", packet=" + event, e);
 			}
 		}
 		else if (JocketPacket.TYPE_CLOSE.equals(type)) {
@@ -69,11 +67,6 @@ public abstract class JocketConnection
 				logger.error("[Jocket] Failed to close connection: sid=" + sessionId, e);
 			}
 		}
-		else if (JocketPacket.TYPE_UPGRADE.equals(type)) {
-			if (this instanceof JocketPollingConnection) {
-				((JocketPollingConnection)this).closeOnUpgrade();
-			}
-		}
 	}
 
 	/**
@@ -81,7 +74,7 @@ public abstract class JocketConnection
 	 * @param packet The message to be sent
 	 * @throws IOException
 	 */
-	public abstract void downstream(JocketPacket packet) throws IOException;
+	public abstract boolean downstream(JocketPacket packet) throws IOException;
 
 	/**
 	 * Close the alive connection when session is closed

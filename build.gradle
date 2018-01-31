@@ -1,14 +1,17 @@
 allprojects {
-	apply plugin: 'maven'
-	apply plugin: 'java-library'
-
 	group = 'com.jeedsoft'
-	version = '1.1.8'
-	sourceCompatibility = '1.7'
+	version = '1.2.0'
 
 	repositories {
-		maven { url 'http://maven.aliyun.com/nexus/content/groups/public' }
+        jcenter()
 	}
+}
+
+subprojects {
+    apply plugin: 'maven'
+    apply plugin: 'java-library'
+
+    sourceCompatibility = '1.7'
 
     tasks.withType(JavaCompile) {
         options.incremental = true

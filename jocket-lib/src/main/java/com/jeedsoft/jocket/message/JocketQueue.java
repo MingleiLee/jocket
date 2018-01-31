@@ -1,22 +1,18 @@
 package com.jeedsoft.jocket.message;
 
-import com.jeedsoft.jocket.connection.JocketConnection;
-
 public interface JocketQueue
 {
 	void start();
 
 	void stop();
 
-	void addSubscriber(JocketConnection cn);
+	void publish(String sessionId, JocketPacket packet);
 
-	void removeSubscriber(String sessionId, boolean isPermanent);
-	
-	void publishMessage(String sessionId, JocketPacket packet);
+	JocketPacket poll(String sessionId);
 
-	void publishEvent(String sessionId, JocketPacket packet);
+	JocketPacket peek(String sessionId);
 
-	int getSubscriberCount();
+	void clear(String sessionId);
 
 	int getQueueCount();
 }

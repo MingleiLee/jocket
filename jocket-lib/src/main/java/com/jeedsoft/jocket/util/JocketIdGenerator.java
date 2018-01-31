@@ -1,8 +1,8 @@
-package com.jeedsoft.jocket.connection;
+package com.jeedsoft.jocket.util;
 
 import java.util.UUID;
 
-public class JocketSessionIdGenerator
+public class JocketIdGenerator
 {
 	private static final char[] CHARS = 
 	{
@@ -12,10 +12,20 @@ public class JocketSessionIdGenerator
 		'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
 		'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x',
 		'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7',
-		'8', '9', '-', '_'
+		'8', '9', '-', '-'
 	};
 
 	public static String generate()
+	{
+		while (true) {
+			String id = gen();
+			if (id.indexOf('-') == -1) {
+				return id;
+			}
+		}
+	}
+
+	private static String gen()
 	{
 		StringBuilder sb = new StringBuilder();
 		UUID uuid = UUID.randomUUID();
@@ -29,12 +39,5 @@ public class JocketSessionIdGenerator
 			a >>>= 6;
 		}
 		return sb.toString();
-	}
-	
-	public static void main(String[] args)
-	{
-		for (int i = 0; i < 10; ++i) {
-			System.out.println(generate());
-		}
 	}
 }

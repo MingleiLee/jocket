@@ -12,11 +12,15 @@ import com.jeedsoft.jocket.connection.JocketCloseReason;
 import com.jeedsoft.jocket.connection.JocketSession;
 import com.jeedsoft.jocket.endpoint.JocketEndpoint;
 import com.jeedsoft.jocket.endpoint.JocketServerEndpoint;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @JocketServerEndpoint("/chat/simple")
 public class SimpleChat implements JocketEndpoint
 {
-	private static final AtomicInteger serial = new AtomicInteger();
+    private static final Logger logger = LoggerFactory.getLogger(SimpleChat.class);
+
+    private static final AtomicInteger serial = new AtomicInteger();
 	
 	private static final Map<String, JocketSession> sessions = new HashMap<>();
 
@@ -28,6 +32,7 @@ public class SimpleChat implements JocketEndpoint
 		synchronized (sessions) {
 			sessions.put(session.getId(), session);
 			String userName = "User" + serial.incrementAndGet();
+            logger.info("Jocket opened: userName={}, session class={}", userName, session.getClass());
 			session.setAttribute(KEY_USER_NAME, userName);
 			JSONObject message = new JSONObject();
 			message.put("senderType", "system");

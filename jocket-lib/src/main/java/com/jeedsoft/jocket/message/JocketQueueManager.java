@@ -3,11 +3,7 @@ package com.jeedsoft.jocket.message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.jeedsoft.jocket.connection.JocketConnection;
-import com.jeedsoft.jocket.connection.JocketSession;
-import com.jeedsoft.jocket.connection.JocketSessionManager;
 import com.jeedsoft.jocket.storage.local.JocketLocalQueue;
-import com.jeedsoft.jocket.util.JocketClock;
 
 public class JocketQueueManager
 {
@@ -36,41 +32,25 @@ public class JocketQueueManager
 		queue.stop();
 	}
 
-	public static void addSubscriber(JocketConnection cn)
-	{
-		queue.addSubscriber(cn);
-	}
+    public static void publish(String sessionId, JocketPacket packet)
+    {
+        queue.publish(sessionId, packet);
+    }
 
-	public static void removeSubscriber(String sessionId, boolean clearQueue)
-	{
-		queue.removeSubscriber(sessionId, clearQueue);
-	}
+    public static JocketPacket poll(String sessionId)
+    {
+        return queue.poll(sessionId);
+    }
 
-	public static void publishMessage(String sessionId, JocketPacket message)
-	{
-		JocketSession session = JocketSessionManager.get(sessionId);
-		publishMessage(session, message);
-	}
+    public static JocketPacket peek(String sessionId)
+    {
+        return queue.peek(sessionId);
+    }
 
-	public static void publishMessage(JocketSession session, JocketPacket message)
-	{
-		if (session != null && session.isOpen()) {
-			if (JocketPacket.TYPE_MESSAGE.equals(message.getType())) {
-				session.setLastMessageTime(JocketClock.now());
-			}
-			queue.publishMessage(session.getId(), message);
-		}
-	}
-
-	public static void publishEvent(String sessionId, JocketPacket packet)
-	{
-		queue.publishEvent(sessionId, packet);
-	}
-
-	public static int getSubscriberCount()
-	{
-		return queue.getSubscriberCount();
-	}
+    public static void clear(String sessionId)
+    {
+        queue.clear(sessionId);
+    }
 
 	public static int getQueueCount()
 	{

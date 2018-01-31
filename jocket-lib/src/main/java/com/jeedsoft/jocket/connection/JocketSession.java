@@ -142,37 +142,6 @@ public class JocketSession
 		return STATUS_OPEN.equals(getStatus());
 	}
 
-	public boolean isUpgraded()
-	{
-		return upgraded;
-	}
-
-	public void setUpgraded(boolean upgraded)
-	{
-		this.upgraded = upgraded;
-	}
-
-	public boolean isConnected()
-	{
-		return connected;
-	}
-
-	public void setConnected(boolean connected)
-	{
-		this.connected = connected;
-	}
-
-	public boolean isHeartbeating()
-	{
-		return heartbeating;
-	}
-
-	public void setHeartbeating(boolean heartbeating)
-	{
-		logger.trace("[Jocket] Set heartbeating: sid={}, value={}", id, heartbeating);
-		this.heartbeating = heartbeating;
-	}
-
 	public long getStartTime()
 	{
 		return startTime;
@@ -275,7 +244,7 @@ public class JocketSession
 	public void send(String name, Object data)
 	{
 		JocketPacket packet = new JocketPacket(JocketPacket.TYPE_MESSAGE, name, data);
-		JocketQueueManager.publishMessage(id, packet);
+		JocketQueueManager.publish(id, packet);
 	}
 	
 	public void close(int code, String message)
