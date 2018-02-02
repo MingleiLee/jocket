@@ -38,12 +38,6 @@ public class JocketSession
 
 	private String status;
 	
-	private boolean upgraded;
-	
-	private boolean connected;
-
-	private boolean heartbeating;
-	
 	private long startTime;
 
 	private long closeTime;

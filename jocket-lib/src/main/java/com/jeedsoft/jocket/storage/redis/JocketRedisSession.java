@@ -226,13 +226,6 @@ public class JocketRedisSession extends JocketSession
 		}
 	}
 
-	private static void put(Map<String, String> map, String key, boolean value)
-	{
-		if (value) {
-			map.put(key, Boolean.toString(value));
-		}
-	}
-
 	private static void put(Map<String, String> map, String key, Object value)
 	{
 		if (value != null) {
