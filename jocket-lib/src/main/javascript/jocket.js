@@ -999,14 +999,30 @@ Jocket._pageCleanup = function()
 //-----------------------------------------------------------------------
 
 (function(){
+    window.addEventListener("beforeunload", Jocket._doBeforeUnload);
+    window.addEventListener("unload", Jocket._doUnload);
+
     var scripts = document.getElementsByTagName("script");
     var script = scripts[scripts.length - 1];
     Jocket._pageId = Jocket._digit64.now() + Jocket._digit64.random(3);
     Jocket._instanceCount = 0;
     Jocket._lastInstance = null;
     Jocket._pageCleaned = false;
-    Jocket.isDebug = /debug=true/.test(script.src);
+
+    var isDebug = null;
+    try {
+        for (var w = window; ; w = w.parent) {
+            if (/jocket-debug=(true|false)/.test(w.location.href)) {
+                isDebug = RegExp.$1 === "true";
+            }
+            if (w.parent === w) {
+                break;
+            }
+        }
+    }
+    catch (e) {
+        // Cross-origin exception can be ignored here
+    }
+    Jocket.isDebug = isDebug === null ? /debug=true/.test(script.src) : isDebug;
     Jocket._globalLogger.debug("Jocket library loaded: debug=%s", Jocket.isDebug);
-    window.addEventListener("beforeunload", Jocket._doBeforeUnload);
-    window.addEventListener("unload", Jocket._doUnload);
 })();

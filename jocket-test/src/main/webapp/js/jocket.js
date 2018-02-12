@@ -902,71 +902,71 @@ Jocket.Logger._getPrefix = function()
 //-----------------------------------------------------------------------
 
 Jocket.util =
+{
+    getProperty: function(key)
     {
-        getProperty: function(key)
-        {
-            for (var i = 1; i < arguments.length - 1; ++i) {
-                var map = arguments[i];
-                if (key in map) {
-                    return map[key];
-                }
-            }
-            return arguments[arguments.length - 1];
-        },
-
-        clearTimers: function(transport)
-        {
-            for (var key in transport.timers) {
-                clearTimeout(transport.timers[key]);
-            }
-            transport.timers = {};
-        },
-
-        clearPingTimeout: function(transport)
-        {
-            if (transport.timers.timeout != null) {
-                clearTimeout(transport.timers.timeout);
-                delete transport.timers.timeout;
+        for (var i = 1; i < arguments.length - 1; ++i) {
+            var map = arguments[i];
+            if (key in map) {
+                return map[key];
             }
         }
-    };
+        return arguments[arguments.length - 1];
+    },
+
+    clearTimers: function(transport)
+    {
+        for (var key in transport.timers) {
+            clearTimeout(transport.timers[key]);
+        }
+        transport.timers = {};
+    },
+
+    clearPingTimeout: function(transport)
+    {
+        if (transport.timers.timeout != null) {
+            clearTimeout(transport.timers.timeout);
+            delete transport.timers.timeout;
+        }
+    }
+};
 
 Jocket._digit64 =
+{
+    digits: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_".split(""),
+
+    serial: 0,
+
+    previousTime: 0,
+
+    now: function()
     {
-        digits: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_".split(""),
-
-        serial: 0,
-
-        previousTime: 0,
-
-        now: function()
-        {
-            var time = Jocket._digit64.zip(new Date().getTime());
-            if (time === Jocket._digit64.previousTime) {
-                return time + "." + Jocket._digit64.serial++;
-            }
-            Jocket._digit64.previousTime = time;
-            Jocket._digit64.serial = 0;
-            return time;
-        },
-
-        random: function(count)
-        {
-            var upperBound = 1 << (count * 6);
-            var value = upperBound + Math.floor(Math.random() * upperBound);
-            return Jocket._digit64.zip(value).substring(1);
-        },
-
-        zip: function(value)
-        {
-            var text = "";
-            while (value !== 0) {
-                text = Jocket._digit64.digits[value & 0x3F] + text;
-                value >>>= 6;
-            }
-            return text;
+        var time = Jocket._digit64.zip(new Date().getTime());
+        if (time === Jocket._digit64.previousTime) {
+            return time + "." + Jocket._digit64.serial++;
         }
-    };
+        Jocket._digit64.previousTime = time;
+        Jocket._digit64.serial = 0;
+        return time;
+    },
+
+    random: function(count)
+    {
+        var upperBound = 1 << (count * 6);
+        var value = upperBound + Math.floor(Math.random() * upperBound);
+        return Jocket._digit64.zip(value).substring(1);
+    },
+
+    zip: function(value)
+    {
+        var text = "";
+        while (value !== 0) {
+            text = Jocket._digit64.digits[value & 0x3F] + text;
+            value >>>= 6;
+        }
+        return text;
+    }
+};
 
 Jocket._doBeforeUnload = function()
 {
@@ -999,14 +999,30 @@ Jocket._pageCleanup = function()
 //-----------------------------------------------------------------------
 
 (function(){
+    window.addEventListener("beforeunload", Jocket._doBeforeUnload);
+    window.addEventListener("unload", Jocket._doUnload);
+
     var scripts = document.getElementsByTagName("script");
     var script = scripts[scripts.length - 1];
     Jocket._pageId = Jocket._digit64.now() + Jocket._digit64.random(3);
     Jocket._instanceCount = 0;
     Jocket._lastInstance = null;
     Jocket._pageCleaned = false;
-    Jocket.isDebug = /debug=true/.test(script.src);
+
+    var isDebug = null;
+    try {
+        for (var w = window; ; w = w.parent) {
+            if (/jocket-debug=(true|false)/.test(w.location.href)) {
+                isDebug = RegExp.$1 === "true";
+            }
+            if (w.parent === w) {
+                break;
+            }
+        }
+    }
+    catch (e) {
+        // Cross-origin exception can be ignored here
+    }
+    Jocket.isDebug = isDebug === null ? /debug=true/.test(script.src) : isDebug;
     Jocket._globalLogger.debug("Jocket library loaded: debug=%s", Jocket.isDebug);
-    window.addEventListener("beforeunload", Jocket._doBeforeUnload);
-    window.addEventListener("unload", Jocket._doUnload);
 })();
