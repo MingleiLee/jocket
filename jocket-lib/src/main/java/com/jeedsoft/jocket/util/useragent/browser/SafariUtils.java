@@ -110,8 +110,6 @@ public class SafariUtils {
 		{"537.76.4", "7.0.4"},
 		{"537.77.4", "7.0.5"},
 		
-		////{"537.78.2", "7.0.6"}, //TODO ambiguity
-		
 		// data is absent in wikipedia
 //		{"", "7.1"},
 //		{"", "7.1.1"},

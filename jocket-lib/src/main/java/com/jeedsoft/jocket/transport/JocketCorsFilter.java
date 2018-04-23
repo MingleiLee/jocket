@@ -92,7 +92,7 @@ public final class JocketCorsFilter implements Filter
 	
 	private boolean isOriginAllowed(String origin)
 	{
-		//TODO add rules
+		// TODO [Security] Add rules
 		return true;
 	}
 	

@@ -51,7 +51,6 @@ public class JocketCleaner
 				}
 				List<JocketSession> brokenSessions = JocketSessionManager.checkStore();
 				for (JocketSession session: brokenSessions) {
-					// TODO close session ?
                     JocketConnectionManager.remove(session.getId());
 					int code = JocketCloseCode.NO_HEARTBEAT;
 					JocketCloseReason reason = new JocketCloseReason(code, "no new ping");

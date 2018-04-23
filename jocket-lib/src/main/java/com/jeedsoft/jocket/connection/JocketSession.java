@@ -248,7 +248,7 @@ public class JocketSession
 	
 	public boolean isBroken()
 	{
-		//TODO check closed sessions
+		// TODO check closed sessions
 		long brokenMillis = JocketService.getPingInterval() + JocketService.getPingTimeout();
 		long heartbeatTime = Math.max(getLastHeartbeatTime(), getStartTime());
 		long now = JocketClock.now();
