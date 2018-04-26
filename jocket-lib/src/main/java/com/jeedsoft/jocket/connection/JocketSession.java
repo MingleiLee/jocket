@@ -136,6 +136,11 @@ public class JocketSession
 		return STATUS_OPEN.equals(getStatus());
 	}
 
+    public boolean isClosed()
+    {
+        return STATUS_CLOSED.equals(getStatus());
+    }
+
 	public long getStartTime()
 	{
 		return startTime;
@@ -246,9 +251,11 @@ public class JocketSession
 		Jocket.close(id, code, message);
 	}
 	
+	/**
+	 * Check if the session is broken (due to timeout)
+	 */
 	public boolean isBroken()
 	{
-		// TODO check closed sessions
 		long brokenMillis = JocketService.getPingInterval() + JocketService.getPingTimeout();
 		long heartbeatTime = Math.max(getLastHeartbeatTime(), getStartTime());
 		long now = JocketClock.now();

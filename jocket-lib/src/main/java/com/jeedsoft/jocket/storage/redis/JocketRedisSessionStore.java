@@ -81,8 +81,8 @@ public class JocketRedisSessionStore implements JocketSessionStore
 	@Override
 	public synchronized boolean contains(String id)
 	{
-		String key = getBaseKey(id);
-		return JocketRedisExecutor.exists(key); // TODO exclude closed sessions?
+		JocketSession session = get(id);
+		return session != null && !session.isBroken();
 	}
 
 	@Override

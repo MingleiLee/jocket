@@ -113,7 +113,7 @@ public class JocketRedisQueue extends JocketAbstractQueue
 	@Override
 	public int getQueueCount()
 	{
-        //TODO Optimize for performance: use lua script to return the count directly
+        // XXX Optimize for performance: use lua script to return the count directly
 		Set<String> keys = JocketRedisExecutor.keys(getQueueKeyPattern());
 		Set<String> sessionIds = new HashSet<>();
 		int startIndex = JocketRedisKey.PREFIX_SESSION.length() + 1;

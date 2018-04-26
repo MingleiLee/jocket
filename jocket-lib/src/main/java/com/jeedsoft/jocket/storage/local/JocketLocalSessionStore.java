@@ -45,7 +45,8 @@ public class JocketLocalSessionStore implements JocketSessionStore
 	@Override
 	public synchronized boolean contains(String id)
 	{
-		return sessionMap.containsKey(id);
+        JocketSession session = get(id);
+        return session != null && !session.isBroken();
 	}
 
 	@Override
