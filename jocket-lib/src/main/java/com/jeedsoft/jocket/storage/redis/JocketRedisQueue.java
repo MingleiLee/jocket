@@ -75,7 +75,7 @@ public class JocketRedisQueue extends JocketAbstractQueue
         JocketRedisExecutor.lpush(isMessage ? mqKey : eqKey, packet.toJson().toString());
         logger.trace("[Jocket] Publish to redis queue: sid={}, eqSize={}, mqSize={}", sessionId, eqSize, mqSize);
         JSONObject data = new JSONObject().put("sessionId", sessionId);
-        JocketRedisExecutor.publish(JocketRedisSubscriber.channel, data.toString());
+        JocketRedisSubscriber.publish(data);
 		JocketConsumer.notify(sessionId);
 	}
 

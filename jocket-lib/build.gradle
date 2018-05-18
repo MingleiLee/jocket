@@ -7,4 +7,6 @@ dependencies {
 	compile 'javax.servlet:javax.servlet-api:3.1.0'
 	compile 'redis.clients:jedis:2.9.0'
 	testCompile 'junit:junit:4.12'
+	testRuntime 'org.apache.logging.log4j:log4j-core:2.9.1'
+	testRuntime 'org.apache.logging.log4j:log4j-slf4j-impl:2.9.1'
 }

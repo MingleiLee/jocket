@@ -3,8 +3,9 @@ package com.jeedsoft.jocket.storage.redis;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.jeedsoft.jocket.util.JocketRuntimeException;
+import com.jeedsoft.jocket.JocketService;
 import com.jeedsoft.jocket.util.JocketClock;
+import com.jeedsoft.jocket.util.JocketRuntimeException;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.util.Pool;
@@ -14,17 +15,34 @@ public class JocketRedisManager
 	private static final Logger logger = LoggerFactory.getLogger(JocketRedisManager.class);
 	
 	private static JocketRedisDataSource ds;
-	
-	public static void initialize(JocketRedisDataSource ds)
+	   
+    public static void initialize(JocketRedisDataSource ds)
+    {
+        initialize(ds, null);
+    }
+
+	public static void initialize(JocketRedisDataSource ds, String clusterId)
 	{
 		JocketRedisManager.ds = ds;
 		JocketClock.setInstance(new JocketClock.RedisClock());
+        JocketRedisSubscriber.setClusterId(clusterId);
+        JocketService.setEventQueue(new JocketRedisQueue());
+        JocketService.setSessionStore(new JocketRedisSessionStore());
 	}
 	
 	public static void initialize(Pool<Jedis> pool)
 	{
-		JocketRedisManager.ds = new SimpleDataSource(pool);
-		JocketClock.setInstance(new JocketClock.RedisClock());
+        initialize(pool, null);
+	}
+	   
+    public static void initialize(Pool<Jedis> pool, String clusterId)
+    {
+        initialize(new SimpleDataSource(pool), clusterId);
+    }
+
+	public static JocketRedisDataSource getDataSource()
+	{
+	    return ds;
 	}
 	
 	public static void destroy()

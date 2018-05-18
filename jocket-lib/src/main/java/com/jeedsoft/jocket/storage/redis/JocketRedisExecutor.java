@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPubSub;
 import redis.clients.jedis.exceptions.JedisException;
 
 public class JocketRedisExecutor
@@ -139,20 +138,6 @@ public class JocketRedisExecutor
 	{
 		try (Jedis jedis = JocketRedisManager.getJedis()) {
 			return jedis.hmset(key, hash);
-		}
-	}
-
-	public static long publish(String channel, String message)
-	{
-		try (Jedis jedis = JocketRedisManager.getJedis()) {
-			return jedis.publish(channel, message);
-		}
-	}
-
-	public static void subscribe(JedisPubSub pubSub, String channel)
-	{
-		try (Jedis jedis = JocketRedisManager.getJedis()) {
-			jedis.subscribe(pubSub, channel);
 		}
 	}
 

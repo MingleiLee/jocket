@@ -1,8 +1,7 @@
 package com.jeedsoft.jocket.storage.redis;
 
-import redis.clients.jedis.Jedis;
+import com.jeedsoft.redis.RedisDataSource;
 
-public interface JocketRedisDataSource
+public interface JocketRedisDataSource extends RedisDataSource
 {
-	Jedis getJedis();
 }
