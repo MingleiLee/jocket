@@ -14,8 +14,8 @@ public class RedisChannel
     private static final Logger logger = LoggerFactory.getLogger(RedisChannel.class);
 
     private static final String KEY_SENDER = "sender";
-    private static final String KEY_INCLUDE_SELF = "includeSelf";
     private static final String KEY_DATA = "data";
+    private static final String KEY_DISCARD_OWN_MESSAGE = "discardOwnMessage";
     private static final String KEY_HANDSHAKE = "handshake";
     
     private final String id = UUID.randomUUID().toString();
@@ -24,12 +24,14 @@ public class RedisChannel
 
     private RedisDataSource ds;
     
-    private Callback callback;
+    private RedisChannelCallback callback;
     
     private PubSub pubSub;
 
-    private boolean active = false;
+    private boolean started = false;
 
+    private boolean connected = false;
+    
     private int serial = 0; // When reconnect, serial++
     
     private long lastActiveTime = 0; // The last time when message received
@@ -46,7 +48,7 @@ public class RedisChannel
         this.ds = ds;
     }
 
-    public void setCallback(Callback callback)
+    public void setCallback(RedisChannelCallback callback)
     {
         this.callback = callback;
     }
@@ -54,27 +56,28 @@ public class RedisChannel
     public synchronized void start()
     {
         cleanup();
-        active = true;
+        started = true;
         connect();
     }
     
     public synchronized void stop()
     {
         cleanup();
-        active = false;
+        started = false;
+        setConnected(false, null);
     }
 
     public void publish(JSONObject message)
     {
-        publish(message, true);
+        publish(message, false);
     }
 
-    public void publish(JSONObject message, boolean includeSelf)
+    public void publish(JSONObject message, boolean discardOwnMessage)
     {
         JSONObject packet = new JSONObject();
         packet.put(KEY_SENDER, id);
-        packet.put(KEY_INCLUDE_SELF, includeSelf);
         packet.put(KEY_DATA, message);
+        packet.put(KEY_DISCARD_OWN_MESSAGE, discardOwnMessage);
         publishPacket(packet);
     }
     
@@ -102,6 +105,19 @@ public class RedisChannel
         }
     }
     
+    private synchronized void setConnected(boolean connected, Throwable e)
+    {
+        if (connected != this.connected) {
+            this.connected = connected;
+            if (connected) {
+                callback.onConnect();
+            }
+            else {
+                callback.onDisconnect(e);
+            }
+        }
+    }
+    
     private synchronized void connect()
     {
         logger.debug("Redis subscribe: channel={}", name);
@@ -116,10 +132,12 @@ public class RedisChannel
                     jedis.subscribe(pubSub, name);
                     logger.debug("Redis subscribe thread stop. channel={}", name);
                     cleanup();
+                    setConnected(false, null);
                 }
                 catch (Throwable e) {
                     logger.error("Redis subscribe thread error", e);
                     cleanup();
+                    setConnected(false, e);
                 }
             }
         }.start();
@@ -128,9 +146,9 @@ public class RedisChannel
     synchronized void monitor()
     {
         try {
-            String msg = "Run monitor: channel={}, active={}, pubSub={}, isHandshaking={}, lastActiveTime={}";
-            logger.trace(msg, name, active, pubSub, isHandshaking, lastActiveTime);
-            if (!active) {
+            String msg = "Run monitor: channel={}, started={}, pubSub={}, isHandshaking={}, lastActiveTime={}";
+            logger.trace(msg, name, started, pubSub, isHandshaking, lastActiveTime);
+            if (!started) {
                 return;
             }
             else if (pubSub == null) {
@@ -180,8 +198,8 @@ public class RedisChannel
                 JSONObject packet = new JSONObject(message);
                 if (!packet.has(KEY_HANDSHAKE)) {
                     String sender = packet.getString(KEY_SENDER);
-                    boolean includeSelf = packet.getBoolean(KEY_INCLUDE_SELF);
-                    if (includeSelf || !sender.equals(id)) {
+                    boolean discardOwnMessage = packet.getBoolean(KEY_DISCARD_OWN_MESSAGE);
+                    if (!discardOwnMessage || !sender.equals(id)) {
                         JSONObject data = packet.getJSONObject(KEY_DATA);
                         callback.onMessage(data);
                     }
@@ -198,17 +216,14 @@ public class RedisChannel
             logger.debug("Redis subscribed. channel={}, subscribedChannels={}", channel, subscribedChannels);
             lastActiveTime = System.currentTimeMillis();
             isHandshaking = false;
+            setConnected(true, null);
         }
 
         @Override
         public void onUnsubscribe(String channel, int subscribedChannels)
         {
             logger.debug("Redis unsubscribed. channel={}, subscribedChannels={}", channel, subscribedChannels);
+            setConnected(false, null);
         }
-    }
-
-    public static interface Callback
-    {
-        void onMessage(JSONObject message);
     }
 }

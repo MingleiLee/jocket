@@ -56,16 +56,16 @@ public class RedisChannelManager
 
     public static void publish(String name, JSONObject message)
     {
-        publish(name, message, true);
+        publish(name, message, false);
     }
 
-    public static void publish(String name, JSONObject message, boolean includeSelf)
+    public static void publish(String name, JSONObject message, boolean discardOwnMessage)
     {
         RedisChannel instance = instances.get(name);
         if (instance == null) {
             throw new RuntimeException("RedisChannel not found: name=" + name);
         }
-        instance.publish(message, includeSelf);
+        instance.publish(message, discardOwnMessage);
     }
 
     private static class MonitorTask implements Runnable

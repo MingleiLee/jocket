@@ -11,7 +11,10 @@ import org.slf4j.LoggerFactory;
 import com.jeedsoft.jocket.JocketService;
 import com.jeedsoft.jocket.endpoint.JocketDeployer;
 import com.jeedsoft.jocket.endpoint.JocketEndpoint;
+import com.jeedsoft.jocket.storage.redis.JocketRedisManager;
 import com.jeedsoft.jocket.util.JocketException;
+
+import redis.clients.jedis.JedisPool;
 
 @WebListener
 public class StartupListener implements ServletContextListener
@@ -26,7 +29,7 @@ public class StartupListener implements ServletContextListener
 	        ServletContext context = event.getServletContext();
 	        Class<? extends JocketEndpoint>[] classes = new Class[]{SimpleChat.class};
 	        JocketDeployer.deploy(classes);
-	        // JocketRedisManager.initialize(new JedisPool("127.0.0.1"), "12345");
+	        JocketRedisManager.initialize(new JedisPool("127.0.0.1"), "12345");
 			JocketService.start(context);
 		}
 		catch (JocketException e) {

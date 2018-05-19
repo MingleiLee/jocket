@@ -6,8 +6,8 @@ import org.slf4j.LoggerFactory;
 
 import com.jeedsoft.jocket.connection.JocketConnectionManager;
 import com.jeedsoft.jocket.message.JocketConsumer;
+import com.jeedsoft.redis.RedisChannelCallback;
 import com.jeedsoft.redis.RedisChannel;
-import com.jeedsoft.redis.RedisChannel.Callback;
 import com.jeedsoft.redis.RedisChannelManager;
 
 public class JocketRedisSubscriber
@@ -57,7 +57,7 @@ public class JocketRedisSubscriber
         JocketRedisSubscriber.clusterId = clusterId;
     }
     
-	private static class MessageCallback implements Callback
+	private static class MessageCallback implements RedisChannelCallback
 	{
 	    @Override
         public void onMessage(JSONObject message)
@@ -80,6 +80,18 @@ public class JocketRedisSubscriber
             catch (Throwable e) {
                 logger.error("[Jocket] Failed to handle message:", e);
             }
+        }
+
+        @Override
+        public void onConnect()
+        {
+            logger.info("[Jocket] Channel connected.");
+        }
+
+        @Override
+        public void onDisconnect(Throwable e)
+        {
+            logger.info("[Jocket] Channel disconnected.");
         }
     }
 }
