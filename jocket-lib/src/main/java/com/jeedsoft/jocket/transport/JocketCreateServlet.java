@@ -16,6 +16,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.jeedsoft.jocket.Jocket;
 import com.jeedsoft.jocket.JocketService;
 import com.jeedsoft.jocket.connection.JocketSession;
 import com.jeedsoft.jocket.connection.JocketSessionManager;
@@ -44,6 +45,7 @@ public class JocketCreateServlet extends HttpServlet
 	    // Get Jocket path
 		String servletPath = request.getServletPath();
 		String path = request.getParameter("jocket_path");
+        String clientVersion = request.getParameter("jocket_version");
 		if (path == null) {
 			// For backward compatibility. In old versions, Jocket use the URL path as Jocket path
 			path = servletPath.replaceFirst("\\.jocket.*", "");
@@ -88,7 +90,8 @@ public class JocketCreateServlet extends HttpServlet
 			if (logger.isDebugEnabled()) {
 				String ua = request.getHeader("User-Agent");
 				String device = JocketRequestUtil.getDevice(ua);
-				logger.debug("[Jocket] Session created: sid={}, device={}, userAgent={}", sessionId, device, ua);
+				Object[] args = {sessionId, clientVersion, Jocket.VERSION, device, ua};
+				logger.debug("[Jocket] Session created: sid={}, clientVersion={}, serverVersion={}, device={}, userAgent={}", args);
 			}
 
 			// Invoke callback. For redis compatibility, the session must get from manager to

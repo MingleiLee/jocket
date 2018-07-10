@@ -8,6 +8,8 @@ import com.jeedsoft.jocket.message.JocketQueueManager;
 
 public class Jocket
 {
+    public static final String VERSION = "2.0.4";
+    
 	public static void send(String sessionId, String name, Object data)
 	{
 		JocketPacket packet = new JocketPacket(JocketPacket.TYPE_MESSAGE, name, data);

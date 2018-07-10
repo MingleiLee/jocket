@@ -66,7 +66,9 @@ var Jocket = function(options)
             this._createUrl = server + options.path + ".jocket";
         }
         else {
-            this._createUrl = server + "/create.jocket?jocket_path=" + encodeURIComponent(options.path);
+            this._createUrl = server + "/create.jocket"
+            				+ "?jocket_version=" + Jocket._version
+            				+ "&jocket_path=" + encodeURIComponent(options.path);
         }
         if (options.params != null) {
             for (var key in options.params) {
@@ -285,7 +287,7 @@ Jocket.prototype._close = function(code, message)
     }
     this._fire(Jocket.EVENT_CLOSE, {code:code, message:message});
     this._logger.debug("Session closed: sid=%s, code=%d, message=%s", this.sessionId, code, message);
-    this._sendLog(this._logger.buffer);
+    this._logger.upload();
     this.sessionId = null;
     if (this.options.reconnect !== false) {
         var codes = {};
@@ -318,15 +320,6 @@ Jocket.prototype._sendPacket = function(packet)
     }
     this._transport.sendPacket(packet);
     return true;
-};
-
-Jocket.prototype._sendLog = function(logs)
-{
-    if (this.sessionId != null && this.options.sendLog !== false) {
-        console.log("Send logs to server: rowCount=%d", logs.length); // Don't use Jocket.Logger here
-        var transport = this._transport || new Jocket.Polling(this);
-        transport.sendPacket({type: Jocket.PACKET_TYPE_LOG, data: JSON.stringify(logs)}, true);
-    }
 };
 
 Jocket.prototype._reconnect = function()
@@ -456,6 +449,7 @@ Jocket.Ws.prototype.destroy = function(code, message)
         if (socket.readyState === 0 /*CONNECTING*/ || socket.readyState === 1 /*OPEN*/) {
             socket.close(code, message);
         }
+        delete this.jocket._transport;
         this.jocket._logger.debug("WebSocket closed: code=%d, message=%s", code, message);
     }
 };
@@ -853,6 +847,17 @@ Jocket.Logger.prototype.error = function()
     this._addToBuffer(arguments);
 };
 
+Jocket.Logger.prototype.upload = function()
+{
+	var jocket = this.jocket;
+    if (jocket.options.sendLog !== false && this.buffer.length > 0) {
+        console.log("Send logs to server: rowCount=%d", this.buffer.length); // Don't use Jocket.Logger here
+        var transport = jocket._transport || new Jocket.Polling(jocket);
+        transport.sendPacket({type: Jocket.PACKET_TYPE_LOG, data: JSON.stringify(this.buffer)}, true);
+    }
+    this.buffer = [];
+};
+
 Jocket.Logger.prototype._addToBuffer = function(args)
 {
     if (this.jocket == null) {
@@ -878,8 +883,7 @@ Jocket.Logger.prototype._addToBuffer = function(args)
     }
     this.buffer.push(log);
     if (this.buffer.length >= 20) {
-        this.jocket._sendLog(this.buffer);
-        this.buffer = [];
+        this.upload();
     }
 };
 
@@ -902,71 +906,71 @@ Jocket.Logger._getPrefix = function()
 //-----------------------------------------------------------------------
 
 Jocket.util =
+{
+    getProperty: function(key)
     {
-        getProperty: function(key)
-        {
-            for (var i = 1; i < arguments.length - 1; ++i) {
-                var map = arguments[i];
-                if (key in map) {
-                    return map[key];
-                }
-            }
-            return arguments[arguments.length - 1];
-        },
-
-        clearTimers: function(transport)
-        {
-            for (var key in transport.timers) {
-                clearTimeout(transport.timers[key]);
-            }
-            transport.timers = {};
-        },
-
-        clearPingTimeout: function(transport)
-        {
-            if (transport.timers.timeout != null) {
-                clearTimeout(transport.timers.timeout);
-                delete transport.timers.timeout;
+        for (var i = 1; i < arguments.length - 1; ++i) {
+            var map = arguments[i];
+            if (key in map) {
+                return map[key];
             }
         }
-    };
+        return arguments[arguments.length - 1];
+    },
+
+    clearTimers: function(transport)
+    {
+        for (var key in transport.timers) {
+            clearTimeout(transport.timers[key]);
+        }
+        transport.timers = {};
+    },
+
+    clearPingTimeout: function(transport)
+    {
+        if (transport.timers.timeout != null) {
+            clearTimeout(transport.timers.timeout);
+            delete transport.timers.timeout;
+        }
+    }
+};
 
 Jocket._digit64 =
+{
+    digits: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_".split(""),
+
+    serial: 0,
+
+    previousTime: 0,
+
+    now: function()
     {
-        digits: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_".split(""),
-
-        serial: 0,
-
-        previousTime: 0,
-
-        now: function()
-        {
-            var time = Jocket._digit64.zip(new Date().getTime());
-            if (time === Jocket._digit64.previousTime) {
-                return time + "." + Jocket._digit64.serial++;
-            }
-            Jocket._digit64.previousTime = time;
-            Jocket._digit64.serial = 0;
-            return time;
-        },
-
-        random: function(count)
-        {
-            var upperBound = 1 << (count * 6);
-            var value = upperBound + Math.floor(Math.random() * upperBound);
-            return Jocket._digit64.zip(value).substring(1);
-        },
-
-        zip: function(value)
-        {
-            var text = "";
-            while (value !== 0) {
-                text = Jocket._digit64.digits[value & 0x3F] + text;
-                value >>>= 6;
-            }
-            return text;
+        var time = Jocket._digit64.zip(new Date().getTime());
+        if (time === Jocket._digit64.previousTime) {
+            return time + "." + Jocket._digit64.serial++;
         }
-    };
+        Jocket._digit64.previousTime = time;
+        Jocket._digit64.serial = 0;
+        return time;
+    },
+
+    random: function(count)
+    {
+        var upperBound = 1 << (count * 6);
+        var value = upperBound + Math.floor(Math.random() * upperBound);
+        return Jocket._digit64.zip(value).substring(1);
+    },
+
+    zip: function(value)
+    {
+        var text = "";
+        while (value !== 0) {
+            text = Jocket._digit64.digits[value & 0x3F] + text;
+            value >>>= 6;
+        }
+        return text;
+    }
+};
 
 Jocket._doBeforeUnload = function()
 {
@@ -991,6 +995,7 @@ Jocket._pageCleanup = function()
             Jocket._pageCleaned = true;
         };
         ajax.submit("POST", {type: Jocket.EVENT_BROWSER_CLOSE});
+        jocket._logger.upload();
     }
 };
 
@@ -1008,6 +1013,7 @@ Jocket._pageCleanup = function()
     Jocket._instanceCount = 0;
     Jocket._lastInstance = null;
     Jocket._pageCleaned = false;
+    Jocket._version = "2.0.4";
 
     var isDebug = null;
     try {
@@ -1024,5 +1030,5 @@ Jocket._pageCleanup = function()
         // Cross-origin exception can be ignored here
     }
     Jocket.isDebug = isDebug === null ? /debug=true/.test(script.src) : isDebug;
-    Jocket._globalLogger.debug("Jocket library loaded: debug=%s", Jocket.isDebug);
+    Jocket._globalLogger.debug("Jocket library loaded: version=%s, debug=%s", Jocket._version, Jocket.isDebug);
 })();
