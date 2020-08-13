@@ -1,6 +1,5 @@
 package com.jeedsoft.jocket.util;
 
-import com.jeedsoft.jocket.util.JocketIdGenerator;
 import org.junit.Assert;
 import org.junit.Test;
 

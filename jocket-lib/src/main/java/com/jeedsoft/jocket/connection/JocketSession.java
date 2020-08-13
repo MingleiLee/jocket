@@ -28,6 +28,8 @@ public class JocketSession
 
 	protected String id;
 
+    private String clientId;
+
 	private String requestPath;
 
 	private String httpSessionId;
@@ -68,7 +70,17 @@ public class JocketSession
 		this.id = id;
 	}
 
-	public String getRequestPath()
+	public String getClientId()
+    {
+        return clientId;
+    }
+
+    public void setClientId(String clientId)
+    {
+        this.clientId = clientId;
+    }
+
+    public String getRequestPath()
 	{
 		return requestPath;
 	}

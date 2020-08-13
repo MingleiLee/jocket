@@ -23,6 +23,7 @@ public class JocketRedisSession extends JocketSession
 	private JocketRedisSessionStore store = (JocketRedisSessionStore)JocketSessionManager.getStore();
 
 	private static final String KEY_ID 					= "id";
+    private static final String KEY_CLIENT_ID           = "clientId";
 	private static final String KEY_REQUEST_PATH		= "requestPath";
 	private static final String KEY_ENDPOINT_CLASS		= "endpointClass";
 	private static final String KEY_HTTP_SESSION_ID		= "httpSessionId";
@@ -149,6 +150,7 @@ public class JocketRedisSession extends JocketSession
 	{
 		JocketRedisSession session = new JocketRedisSession();
 		session.setId(map.get(KEY_ID));
+        session.setClientId(map.get(KEY_CLIENT_ID));
 		session.setRequestPath(map.get(KEY_REQUEST_PATH));
 		session.setEndpointClassName(map.get(KEY_ENDPOINT_CLASS));
 		session.setHttpSessionId(map.get(KEY_HTTP_SESSION_ID));
@@ -161,6 +163,7 @@ public class JocketRedisSession extends JocketSession
 	{
 		JocketSession session = new JocketSession();
 		session.setId(baseData.get(KEY_ID));
+        session.setClientId(baseData.get(KEY_CLIENT_ID));
 		session.setRequestPath(baseData.get(KEY_REQUEST_PATH));
 		session.setEndpointClassName(baseData.get(KEY_ENDPOINT_CLASS));
 		session.setHttpSessionId(baseData.get(KEY_HTTP_SESSION_ID));
@@ -182,6 +185,7 @@ public class JocketRedisSession extends JocketSession
 		Map<String, String> map = new HashMap<>();
 		DateFormat df = logger.isDebugEnabled() ? new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS") : null;
 		put(map, KEY_ID, session.getId());
+        put(map, KEY_CLIENT_ID, session.getClientId());
 		put(map, KEY_REQUEST_PATH, session.getRequestPath());
 		put(map, KEY_ENDPOINT_CLASS, session.getEndpointClassName());
 		put(map, KEY_HTTP_SESSION_ID, session.getHttpSessionId());

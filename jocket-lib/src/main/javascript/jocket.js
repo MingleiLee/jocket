@@ -954,13 +954,6 @@ Jocket._digit64 =
         return time;
     },
 
-    random: function(count)
-    {
-        var upperBound = 1 << (count * 6);
-        var value = upperBound + Math.floor(Math.random() * upperBound);
-        return Jocket._digit64.zip(value).substring(1);
-    },
-
     zip: function(value)
     {
         var text = "";
@@ -1009,11 +1002,11 @@ Jocket._pageCleanup = function()
 
     var scripts = document.getElementsByTagName("script");
     var script = scripts[scripts.length - 1];
-    Jocket._pageId = Jocket._digit64.now() + Jocket._digit64.random(3);
+    Jocket._pageId = Jocket._digit64.now();
     Jocket._instanceCount = 0;
     Jocket._lastInstance = null;
     Jocket._pageCleaned = false;
-    Jocket._version = "2.0.4";
+    Jocket._version = "2.0.6";
 
     var isDebug = null;
     try {

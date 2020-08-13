@@ -46,9 +46,13 @@ public class JocketCreateServlet extends HttpServlet
 		String servletPath = request.getServletPath();
 		String path = request.getParameter("jocket_path");
         String clientVersion = request.getParameter("jocket_version");
+        String clientId = request.getParameter("jocket_client"); // example: DTNgnABYK:1,12016,35822
 		if (path == null) {
 			// For backward compatibility. In old versions, Jocket use the URL path as Jocket path
 			path = servletPath.replaceFirst("\\.jocket.*", "");
+		}
+		if (clientId != null) {
+		    clientId = clientId.replaceAll(",.*", ""); // DTNgnABYK:1,12016,35822 -> DTNgnABYK:1
 		}
 		logger.debug("[Jocket] Session creating: path={}, query string={}", path, request.getQueryString());
 
@@ -79,6 +83,7 @@ public class JocketCreateServlet extends HttpServlet
             String sessionId = JocketIdGenerator.generate();
 			JocketSession session = new JocketSession();
             session.setId(sessionId);
+            session.setClientId(clientId);
             session.setRequestPath(path);
 			session.setHttpSessionId(request.getSession().getId());
 			session.setEndpointClassName(config.getEndpointClassName());

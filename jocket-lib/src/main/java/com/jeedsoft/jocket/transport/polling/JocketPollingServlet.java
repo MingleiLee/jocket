@@ -77,10 +77,16 @@ public class JocketPollingServlet extends HttpServlet
 			throw new ServletException(e);
 		}
 	}
-	
+
 	private static class JocketPollingAsyncListener implements AsyncListener
 	{
 		private JocketPollingConnection cn;
+        
+		// JBoss reports a warning message without default constructor
+        @SuppressWarnings("unused")
+        public JocketPollingAsyncListener()
+        {
+        }
 		
 		public JocketPollingAsyncListener(JocketPollingConnection cn)
 		{
@@ -90,6 +96,9 @@ public class JocketPollingServlet extends HttpServlet
 		@Override
 		public void onTimeout(AsyncEvent event) throws IOException
 		{
+		    if (cn == null) {
+		        return;
+		    }
 		    String sessionId = cn.getSessionId();
 			logger.trace("[Jocket] Polling timeout. sid={}", sessionId);
             JocketCloseReason reason = new JocketCloseReason(JocketCloseCode.NO_HEARTBEAT, "no heartbeat");
