@@ -33,29 +33,29 @@ public class JocketSendServlet extends HttpServlet
 	{
 		process(request, response);
 	}
-	
+
 	public static void process(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
 	{
-        String sessionId = request.getParameter("s");
+		String sessionId = request.getParameter("s");
 		try {
-			String text = JocketIoUtil.readText(request);
+			String text = unescape(JocketIoUtil.readText(request));
 			if (logger.isTraceEnabled()) {
 				String params = JocketRequestUtil.getQueryStringWithoutSessionId(request);
 				logger.trace("[Jocket] Packet received: sid={}, packet={}, params=[{}]", sessionId, text, params);
 			}
 
 			JocketPacket packet = JocketPacket.parse(text);
-            String type = packet.getType();
+			String type = packet.getType();
 			if (type.equals(JocketPacket.TYPE_CONFIRM)) {
 				logger.trace("[Jocket] Message confirmed: sid={}, packetId={}", sessionId, packet.getData());
-                JocketIoUtil.writeText(response, "{}");
-                return;
+				JocketIoUtil.writeText(response, "{}");
+				return;
 			}
-            else if (type.equals(JocketPacket.TYPE_LOG)) {
-                JocketClientLogger.log(sessionId, new JSONArray(packet.getData()));
-                JocketIoUtil.writeText(response, "{}");
-                return;
-            }
+			else if (type.equals(JocketPacket.TYPE_LOG)) {
+				JocketClientLogger.log(sessionId, new JSONArray(packet.getData()));
+				JocketIoUtil.writeText(response, "{}");
+				return;
+			}
 
 			JocketSession session = JocketSessionManager.get(sessionId);
 			if (session == null) {
@@ -96,5 +96,15 @@ public class JocketSendServlet extends HttpServlet
 			}
 			response.setStatus(200);
 		}
+	}
+
+	/**
+	 * Convert the escaped text back.
+	 *
+	 * @see Jocket.Ajax.prototype.dataToString in Jocket.js
+	 */
+	private static String unescape(String text)
+	{
+		return text == null ? null : text.replaceAll("\uF000" + "1", ".").replaceAll("\uF000" + "0", "\uF000");
 	}
 }

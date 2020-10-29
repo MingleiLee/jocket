@@ -729,9 +729,29 @@ Jocket.Ajax.prototype.submit = function(method, data)
         xhr.send();
     }
     else {
-        xhr.send(JSON.stringify(data));
+        xhr.send(ajax.dataToString(data));
     }
     ajax._status = Jocket.Ajax.STATUS_SENDING;
+};
+
+/**
+ * Some vulnerability scanning tools report '..\' in data as a problem. (Although it's NOT for Jocket)
+ * To avoid this, we convert '.' to other characters, and convert it back on server side.
+ *
+ * We use a rarely used character (\uF000) as escape character. because the escape character will be
+ * converted firstly, use a rarely used character can minimize changes in the original text, and more
+ * friendly for human reading.
+ *
+ * Escape mapping:
+ *
+ *     \uF000 => \uF000 + '0'
+ *     .      => \uF000 + '1'
+ */
+Jocket.Ajax.prototype.dataToString = function(data)
+{
+	var str = JSON.stringify(data);
+	var esc = '\uF000';
+	return str.replace(/\uF000/g, esc + '0').replace(/\./g, esc + '1');
 };
 
 Jocket.Ajax.prototype.abort = function()
@@ -954,13 +974,6 @@ Jocket._digit64 =
         return time;
     },
 
-    random: function(count)
-    {
-        var upperBound = 1 << (count * 6);
-        var value = upperBound + Math.floor(Math.random() * upperBound);
-        return Jocket._digit64.zip(value).substring(1);
-    },
-
     zip: function(value)
     {
         var text = "";
@@ -1009,11 +1022,11 @@ Jocket._pageCleanup = function()
 
     var scripts = document.getElementsByTagName("script");
     var script = scripts[scripts.length - 1];
-    Jocket._pageId = Jocket._digit64.now() + Jocket._digit64.random(3);
+    Jocket._pageId = Jocket._digit64.now();
     Jocket._instanceCount = 0;
     Jocket._lastInstance = null;
     Jocket._pageCleaned = false;
-    Jocket._version = "2.0.4";
+    Jocket._version = "2.0.7";
 
     var isDebug = null;
     try {

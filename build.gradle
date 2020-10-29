@@ -1,16 +1,16 @@
 allprojects {
-	group = 'com.jeedsoft'
-	version = '2.0.6'
+    group = 'com.jeedsoft'
+    version = '2.0.7'
 
-	repositories {
+    repositories {
         jcenter()
-	}
+    }
 }
 
 subprojects {
     apply plugin: 'maven'
     apply plugin: 'java'
-	apply plugin: 'eclipse-wtp'
+    apply plugin: 'eclipse-wtp'
 
     sourceCompatibility = '1.7'
 

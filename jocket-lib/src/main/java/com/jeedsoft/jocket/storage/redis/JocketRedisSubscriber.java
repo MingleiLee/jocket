@@ -12,40 +12,40 @@ import com.jeedsoft.redis.RedisChannelManager;
 
 public class JocketRedisSubscriber
 {
-	private static final Logger logger = LoggerFactory.getLogger(JocketRedisSubscriber.class);
-	
-	private static String clusterId = null;
-	        
-	private static RedisChannel channel = null;
-    
-	public synchronized static void start()
-	{
-	    if (channel == null) {
-	        String name = "Jocket";
-	        if (clusterId != null) {
-	            name += "-" + clusterId;
-	        }
-	        channel = RedisChannelManager.create(name);
-	        channel.setDataSource(JocketRedisManager.getDataSource());
+    private static final Logger logger = LoggerFactory.getLogger(JocketRedisSubscriber.class);
+
+    private static String clusterId = null;
+
+    private static RedisChannel channel = null;
+
+    public synchronized static void start()
+    {
+        if (channel == null) {
+            String name = "Jocket";
+            if (clusterId != null) {
+                name += "-" + clusterId;
+            }
+            channel = RedisChannelManager.create(name);
+            channel.setDataSource(JocketRedisManager.getDataSource());
             channel.setCallback(new MessageCallback());
-	        channel.start();
-	    }
-	}
+            channel.start();
+        }
+    }
 
-	public synchronized static void stop()
-	{
-	    if (channel != null) {
-	        channel.stop();
-	    }
-	}
+    public synchronized static void stop()
+    {
+        if (channel != null) {
+            channel.stop();
+        }
+    }
 
-	public static void broadcastUpgrade(String sessionId)
-	{
-	    JSONObject json = new JSONObject();
+    public static void broadcastUpgrade(String sessionId)
+    {
+        JSONObject json = new JSONObject();
         json.put("sessionId", sessionId);
         json.put("isUpgrade", true);
         channel.publish(json);
-	}
+    }
 
     public static void publish(JSONObject message)
     {
@@ -56,20 +56,20 @@ public class JocketRedisSubscriber
     {
         JocketRedisSubscriber.clusterId = clusterId;
     }
-    
-	private static class MessageCallback implements RedisChannelCallback
-	{
-	    @Override
+
+    private static class MessageCallback implements RedisChannelCallback
+    {
+        @Override
         public void onMessage(JSONObject message)
-	    {
+        {
             try {
                 logger.trace("[Jocket] Message received from Redis: {}", message);
-                JSONObject json = new JSONObject(message);
-                if (!json.has("sessionId")) {
+                if (!message.has("sessionId")) {
+                    logger.warn("[Jocket] No sessionId attribute in message: {}", message);
                     return;
                 }
-                String sessionId = json.getString("sessionId");
-                boolean isUpgrade = json.optBoolean("isUpgrade");
+                String sessionId = message.getString("sessionId");
+                boolean isUpgrade = message.optBoolean("isUpgrade");
                 if (isUpgrade) {
                     JocketConnectionManager.upgrade(sessionId);
                 }
