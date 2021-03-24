@@ -1,32 +1,29 @@
 package com.jeedsoft.jocket.transport;
 
-import java.io.IOException;
-import java.util.Map;
-
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import com.jeedsoft.jocket.util.JocketIdGenerator;
-import com.jeedsoft.jocket.endpoint.JocketEndpointRunner;
-import com.jeedsoft.jocket.util.JocketClock;
-import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.jeedsoft.jocket.Jocket;
 import com.jeedsoft.jocket.JocketService;
 import com.jeedsoft.jocket.connection.JocketSession;
 import com.jeedsoft.jocket.connection.JocketSessionManager;
 import com.jeedsoft.jocket.endpoint.JocketDeployer;
 import com.jeedsoft.jocket.endpoint.JocketEndpointConfig;
-import com.jeedsoft.jocket.util.JocketException;
-import com.jeedsoft.jocket.util.JocketIoUtil;
-import com.jeedsoft.jocket.util.JocketRequestUtil;
+import com.jeedsoft.jocket.endpoint.JocketEndpointRunner;
+import com.jeedsoft.jocket.util.*;
+import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@WebServlet(urlPatterns="*.jocket", name="JocketCreateServlet")
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Map;
+
+@WebServlet(
+		name = "JocketCreateServlet",
+		urlPatterns = {"/jocket/create", "*.jocket"} // *.jocket for backward compatibility
+)
 public class JocketCreateServlet extends HttpServlet
 {
 	private static final long serialVersionUID = 1L;

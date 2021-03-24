@@ -1,18 +1,5 @@
 package com.jeedsoft.jocket.transport.polling;
 
-import java.io.IOException;
-
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import com.jeedsoft.jocket.util.*;
-import org.json.JSONArray;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.jeedsoft.jocket.connection.JocketCloseCode;
 import com.jeedsoft.jocket.connection.JocketCloseReason;
 import com.jeedsoft.jocket.connection.JocketSession;
@@ -20,8 +7,25 @@ import com.jeedsoft.jocket.connection.JocketSessionManager;
 import com.jeedsoft.jocket.endpoint.JocketEndpointRunner;
 import com.jeedsoft.jocket.message.JocketPacket;
 import com.jeedsoft.jocket.message.JocketQueueManager;
+import com.jeedsoft.jocket.util.JocketClientLogger;
+import com.jeedsoft.jocket.util.JocketClock;
+import com.jeedsoft.jocket.util.JocketIoUtil;
+import com.jeedsoft.jocket.util.JocketRequestUtil;
+import org.json.JSONArray;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@WebServlet(urlPatterns="/send.jocket", name="JocketSendServlet")
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+
+@WebServlet(
+		name = "JocketSendServlet",
+		urlPatterns = {"/jocket/send", "/send.jocket"} // /send.jocket for backward compatibility
+)
 public class JocketSendServlet extends HttpServlet
 {
 	private static final Logger logger = LoggerFactory.getLogger(JocketSendServlet.class);

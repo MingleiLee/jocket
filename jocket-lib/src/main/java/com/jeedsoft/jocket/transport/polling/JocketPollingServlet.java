@@ -19,7 +19,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-@WebServlet(urlPatterns="/poll.jocket", name="JocketPollingServlet", asyncSupported=true)
+@WebServlet(
+		name = "JocketPollingServlet",
+		urlPatterns = {"/jocket/poll", "/poll.jocket"}, // /poll.jocket for backward compatibility
+		asyncSupported = true
+)
 public class JocketPollingServlet extends HttpServlet
 {
 	private static final Logger logger = LoggerFactory.getLogger(JocketPollingServlet.class);

@@ -61,19 +61,20 @@ var Jocket = function(options)
     if (typeof options === "object") {
         this.options = options;
         this._urlVersion = options.urlVersion || 2;
-        var server = options.server || Jocket._getServerUrl();
+        var server = (options.server || Jocket._getServerUrl()).replace(/\/+$/, '');
         if (this._urlVersion === 1) {
             this._createUrl = server + options.path + ".jocket";
         }
         else {
-            this._createUrl = server + "/create.jocket"
+            this._createUrl = server + "/jocket/create"
             				+ "?jocket_version=" + Jocket._version
             				+ "&jocket_path=" + encodeURIComponent(options.path);
         }
         if (options.params != null) {
+            var separator = this._urlVersion === 1 ? "?" : "&";
             for (var key in options.params) {
-                var separator = this._createUrl.indexOf(".jocket?") === -1 ? "?" : "&";
                 this._createUrl += separator + key + "=" + encodeURIComponent(options.params[key]);
+                separator = "&";
             }
         }
     }
@@ -241,8 +242,8 @@ Jocket.prototype._open = function(response)
     jocket._pingInterval = Jocket.util.getProperty("pingInterval", response, 25000);
     jocket._pingTimeout = Jocket.util.getProperty("pingTimeout", response, 20000);
 
-    // Polling/WebSocket URL
-    var url = jocket._createUrl.replace(/\.jocket.*/, "");
+    // Polling/WebSocket URL. Old path is 'create.jocket', new path is 'jocket/create'
+    var url = jocket._createUrl.replace(/\.jocket.*/, "").replace(/jocket\/create.*/, "jocket/");
     for (var i = 0; i < response.pathDepth; ++i) {
         url = url.replace(/\/[^\/]*$/, "");
     }
@@ -253,10 +254,10 @@ Jocket.prototype._open = function(response)
     }
     else {
         jocket._pollMethod = "POST";
-        jocket._pollUrl = url + "/poll.jocket?s=" + jocket.sessionId;
-        jocket._sendUrl = url + "/send.jocket?s=" + jocket.sessionId;
+        jocket._pollUrl = url + "/jocket/poll?s=" + jocket.sessionId;
+        jocket._sendUrl = url + "/jocket/send?s=" + jocket.sessionId;
     }
-    jocket._webSocketUrl = url.replace(/^http/, "ws") + "/jocket-ws?s=" + jocket.sessionId;
+    jocket._webSocketUrl = url.replace(/^http/, "ws") + "/jocket/ws?s=" + jocket.sessionId;
 
     // Start polling transport and fire open event
     jocket._transport = new Jocket.Polling(jocket);
@@ -1026,7 +1027,7 @@ Jocket._pageCleanup = function()
     Jocket._instanceCount = 0;
     Jocket._lastInstance = null;
     Jocket._pageCleaned = false;
-    Jocket._version = "2.0.7";
+    Jocket._version = "2.1.0";
 
     var isDebug = null;
     try {

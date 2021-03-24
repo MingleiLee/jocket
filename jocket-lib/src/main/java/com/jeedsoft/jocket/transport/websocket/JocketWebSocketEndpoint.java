@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 import javax.websocket.*;
 import javax.websocket.server.ServerEndpoint;
 
-@ServerEndpoint("/jocket-ws")
+@ServerEndpoint("/jocket/ws")
 public class JocketWebSocketEndpoint
 {
 	private static final Logger logger = LoggerFactory.getLogger(JocketWebSocketEndpoint.class);
