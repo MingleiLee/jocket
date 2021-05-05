@@ -16,8 +16,12 @@ public interface JocketSessionStore
 
 	void updateUserId(String id, String oldUserId, String newUserId);
 
+	void updateOnlineUserId(String id, String oldOnlineUserId, String newOnlineUserId);
+
 	List<JocketSession> getUserSessions(String userId);
-	
+
+	JocketSession getOnlineUserSession(String onlineUserId);
+
 	List<JocketSession> checkStore();
 
 	int size();

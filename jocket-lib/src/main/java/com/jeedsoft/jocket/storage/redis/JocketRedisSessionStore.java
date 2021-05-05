@@ -1,18 +1,12 @@
 package com.jeedsoft.jocket.storage.redis;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.jeedsoft.jocket.connection.JocketSession;
 import com.jeedsoft.jocket.connection.JocketSessionStore;
 import com.jeedsoft.jocket.util.JocketStringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.*;
 
 public class JocketRedisSessionStore implements JocketSessionStore
 {
@@ -49,6 +43,10 @@ public class JocketRedisSessionStore implements JocketSessionStore
 		if (session != null && !JocketStringUtil.isEmpty(session.getUserId())) {
 			String key = getUserKey(session.getUserId());
 			JocketRedisExecutor.srem(key, id);
+		}
+		if (session != null && !JocketStringUtil.isEmpty(session.getOnlineUserId())) {
+			String key = getOnlineUserKey(session.getOnlineUserId());
+			JocketRedisExecutor.del(key);
 		}
 		return session;
 	}
@@ -99,6 +97,19 @@ public class JocketRedisSessionStore implements JocketSessionStore
 	}
 
 	@Override
+	public void updateOnlineUserId(String id, String oldOnlineUserId, String newOnlineUserId)
+	{
+		if (!JocketStringUtil.isEmpty(oldOnlineUserId)) {
+			String key = getOnlineUserKey(oldOnlineUserId);
+			JocketRedisExecutor.del(key);
+		}
+		if (!JocketStringUtil.isEmpty(newOnlineUserId)) {
+			String key = getOnlineUserKey(newOnlineUserId);
+			JocketRedisExecutor.set(key, id);
+		}
+	}
+
+	@Override
 	public List<JocketSession> getUserSessions(String userId)
 	{
 		List<JocketSession> sessions = new ArrayList<>();
@@ -113,6 +124,20 @@ public class JocketRedisSessionStore implements JocketSessionStore
 			}
 		}
 		return sessions;
+	}
+
+	@Override
+	public JocketSession getOnlineUserSession(String onlineUserId)
+	{
+		String key = getOnlineUserKey(onlineUserId);
+		String sessionId = JocketRedisExecutor.get(key);
+		if (!JocketStringUtil.isEmpty(sessionId)) {
+			JocketSession session = get(sessionId);
+			if (session.isOpen()) {
+				return session;
+			}
+		}
+		return null;
 	}
 
 	public String getBaseData(String id, String field)
@@ -214,6 +239,13 @@ public class JocketRedisSessionStore implements JocketSessionStore
 				}
 			}
 		}
+		for (String key: JocketRedisExecutor.keys(getOnlineUserKeyPattern())) {
+			String sessionId = JocketRedisExecutor.get(key);
+			if (!sessionIds.contains(sessionId)) {
+				logger.trace("[Jocket] Remove online user entry: oukey={}, sid={}", key, sessionId);
+				JocketRedisExecutor.del(key);
+			}
+		}
 		return brokenSessions;
 	}
 
@@ -232,6 +264,11 @@ public class JocketRedisSessionStore implements JocketSessionStore
 		return JocketRedisKey.PREFIX_USER + ":" + userId;
 	}
 
+	private String getOnlineUserKey(String onlineUserId)
+	{
+		return JocketRedisKey.PREFIX_ONLINE_USER + ":" + onlineUserId;
+	}
+
 	private String getSessionKeyPattern()
 	{
 		return JocketRedisKey.PREFIX_SESSION + ":*";
@@ -245,6 +282,11 @@ public class JocketRedisSessionStore implements JocketSessionStore
 	private String getUserKeyPattern()
 	{
 		return JocketRedisKey.PREFIX_USER + ":*";
+	}
+
+	private String getOnlineUserKeyPattern()
+	{
+		return JocketRedisKey.PREFIX_ONLINE_USER + ":*";
 	}
 
 	private String extractId(String key)

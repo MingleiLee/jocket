@@ -8,7 +8,7 @@ import com.jeedsoft.jocket.message.JocketQueueManager;
 
 public class Jocket
 {
-    public static final String VERSION = "2.0.4";
+    public static final String VERSION = "2.2.0";
     
 	public static void send(String sessionId, String name, Object data)
 	{
@@ -21,7 +21,7 @@ public class Jocket
 		JocketCloseReason reason = new JocketCloseReason(code, message);
 		JocketSessionManager.close(sessionId, reason, true);
 	}
-	
+
 	public static JocketSession getSession(String sessionId)
 	{
 		return JocketSessionManager.get(sessionId);

@@ -1027,7 +1027,7 @@ Jocket._pageCleanup = function()
     Jocket._instanceCount = 0;
     Jocket._lastInstance = null;
     Jocket._pageCleaned = false;
-    Jocket._version = "2.1.0";
+    Jocket._version = "2.2.0";
 
     var isDebug = null;
     try {

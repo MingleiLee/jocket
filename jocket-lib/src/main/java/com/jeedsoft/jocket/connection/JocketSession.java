@@ -38,6 +38,8 @@ public class JocketSession
 	
 	private String userId;
 
+	private String onlineUserId;
+
 	private String status;
 	
 	private long startTime;
@@ -54,7 +56,7 @@ public class JocketSession
 
 	private Map<String, String> parameters = new HashMap<>();
 
-	private Map<String, Object> attributes = new HashMap<>();
+	private final Map<String, Object> attributes = new HashMap<>();
 
 	public JocketSession()
 	{
@@ -122,11 +124,31 @@ public class JocketSession
 
 	public void setUserId(String userId)
 	{
-		if (JocketStringUtil.isEmpty(userId)) {
-			userId = null;
-		}
-		JocketSessionManager.getStore().updateUserId(id, this.userId, userId);
-		this.userId = userId;
+		String oldUserId = this.userId;
+		setLocalUserId(userId);
+		JocketSessionManager.getStore().updateUserId(id, oldUserId, this.userId);
+	}
+
+	public void setLocalUserId(String userId)
+	{
+		this.userId = JocketStringUtil.isEmpty(userId) ? null : userId;
+	}
+
+	public String getOnlineUserId()
+	{
+		return onlineUserId;
+	}
+
+	public void setOnlineUserId(String onlineUserId)
+	{
+		String oldOnlineUserId = this.onlineUserId;
+		setLocalOnlineUserId(onlineUserId);
+		JocketSessionManager.getStore().updateOnlineUserId(id, oldOnlineUserId, this.onlineUserId);
+	}
+
+	public void setLocalOnlineUserId(String onlineUserId)
+	{
+		this.onlineUserId = JocketStringUtil.isEmpty(onlineUserId) ? null : onlineUserId;
 	}
 
 	public String getStatus()

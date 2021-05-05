@@ -1,6 +1,6 @@
 allprojects {
     group = 'com.jeedsoft'
-    version = '2.1.0'
+    version = '2.2.0' // update Jocket.VERSION to the same value
 
     repositories {
         jcenter()
@@ -12,7 +12,7 @@ subprojects {
     apply plugin: 'java'
     apply plugin: 'eclipse-wtp'
 
-    sourceCompatibility = '1.7'
+    sourceCompatibility = '1.8'
 
     tasks.withType(JavaCompile) {
         options.incremental = true

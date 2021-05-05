@@ -1,27 +1,15 @@
 package com.jeedsoft.jocket.storage.redis;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisException;
+
+import java.util.*;
 
 public class JocketRedisExecutor
 {
 	private static final Logger logger = LoggerFactory.getLogger(JocketRedisExecutor.class);
-
-	public static boolean exists(String key)
-	{
-		try (Jedis jedis = JocketRedisManager.getJedis()) {
-			return jedis.exists(key);
-		}
-	}
 
 	public static List<String> time()
 	{
@@ -34,6 +22,27 @@ public class JocketRedisExecutor
 	{
 		List<String> list = time();
 		return Long.parseLong(list.get(0)) * 1000 + Long.parseLong(list.get(1)) / 1000;
+	}
+
+	public static String get(String key)
+	{
+		try (Jedis jedis = JocketRedisManager.getJedis()) {
+			return jedis.get(key);
+		}
+	}
+
+	public static String set(String key, String value)
+	{
+		try (Jedis jedis = JocketRedisManager.getJedis()) {
+			return jedis.set(key, value);
+		}
+	}
+
+	public static boolean exists(String key)
+	{
+		try (Jedis jedis = JocketRedisManager.getJedis()) {
+			return jedis.exists(key);
+		}
 	}
 
 	public static long del(String... keys)
@@ -173,7 +182,7 @@ public class JocketRedisExecutor
 	@SuppressWarnings("unchecked")
 	private static <T> T eval(String script, String[] keys, String... args)
 	{
-		List<String> keyList = keys == null ? new ArrayList<String>() : Arrays.asList(keys);
+		List<String> keyList = keys == null ? new ArrayList<>() : Arrays.asList(keys);
 		List<String> argList = Arrays.asList(args);
 		try (Jedis jedis = JocketRedisManager.getJedis()) {
 			return (T)jedis.eval(script, keyList, argList);

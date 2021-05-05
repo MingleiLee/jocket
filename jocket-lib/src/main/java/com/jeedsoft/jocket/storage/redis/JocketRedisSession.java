@@ -1,26 +1,25 @@
 package com.jeedsoft.jocket.storage.redis;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.jeedsoft.jocket.connection.JocketCloseReason;
 import com.jeedsoft.jocket.connection.JocketSession;
 import com.jeedsoft.jocket.connection.JocketSessionManager;
 import com.jeedsoft.jocket.util.JocketClock;
 import com.jeedsoft.jocket.util.JocketJsonUtil;
 import com.jeedsoft.jocket.util.JocketStringUtil;
+import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.HashMap;
+import java.util.Map;
 
 public class JocketRedisSession extends JocketSession
 {
 	private static final Logger logger = LoggerFactory.getLogger(JocketRedisSession.class);
 
-	private JocketRedisSessionStore store = (JocketRedisSessionStore)JocketSessionManager.getStore();
+	private final JocketRedisSessionStore store = (JocketRedisSessionStore)JocketSessionManager.getStore();
 
 	private static final String KEY_ID 					= "id";
     private static final String KEY_CLIENT_ID           = "clientId";
@@ -28,6 +27,7 @@ public class JocketRedisSession extends JocketSession
 	private static final String KEY_ENDPOINT_CLASS		= "endpointClass";
 	private static final String KEY_HTTP_SESSION_ID		= "httpSessionId";
 	private static final String KEY_USER_ID				= "userId";
+	private static final String KEY_ONLINE_USER_ID		= "onlineUserId";
 	private static final String KEY_STATUS				= "status";
 	private static final String KEY_START_TIME			= "startTime";
 	private static final String KEY_CLOSE_TIME			= "closeTime";
@@ -51,6 +51,22 @@ public class JocketRedisSession extends JocketSession
 		}
 		store.updateUserId(id, getUserId(), userId);
 		store.setBaseData(id, KEY_USER_ID, userId);
+	}
+
+	@Override
+	public String getOnlineUserId()
+	{
+		return store.getBaseData(id, KEY_ONLINE_USER_ID);
+	}
+
+	@Override
+	public void setOnlineUserId(String onlineUserId)
+	{
+		if (JocketStringUtil.isEmpty(onlineUserId)) {
+			onlineUserId = null;
+		}
+		store.updateOnlineUserId(id, getOnlineUserId(), onlineUserId);
+		store.setBaseData(id, KEY_ONLINE_USER_ID, onlineUserId);
 	}
 
 	@Override
@@ -167,7 +183,8 @@ public class JocketRedisSession extends JocketSession
 		session.setRequestPath(baseData.get(KEY_REQUEST_PATH));
 		session.setEndpointClassName(baseData.get(KEY_ENDPOINT_CLASS));
 		session.setHttpSessionId(baseData.get(KEY_HTTP_SESSION_ID));
-		session.setUserId(baseData.get(KEY_USER_ID));
+		session.setLocalUserId(baseData.get(KEY_USER_ID));
+		session.setLocalOnlineUserId(baseData.get(KEY_ONLINE_USER_ID));
 		session.setStatus(baseData.get(KEY_STATUS));
 		session.setStartTime(getLong(baseData, KEY_START_TIME));
 		session.setCloseTime(getLong(baseData, KEY_CLOSE_TIME));

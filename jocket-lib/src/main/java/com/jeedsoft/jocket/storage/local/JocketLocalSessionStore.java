@@ -1,21 +1,18 @@
 package com.jeedsoft.jocket.storage.local;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.jeedsoft.jocket.connection.JocketSession;
 import com.jeedsoft.jocket.connection.JocketSessionStore;
 import com.jeedsoft.jocket.util.JocketStringUtil;
 
+import java.util.*;
+
 public class JocketLocalSessionStore implements JocketSessionStore
 {
-	private Map<String, JocketSession> sessionMap = new HashMap<>();
+	private final Map<String, JocketSession> sessionMap = new HashMap<>();
 
-	private Map<String, Set<String>> userSessionMap = new HashMap<>();
+	private final Map<String, Set<String>> userSessionMap = new HashMap<>();
+
+	private final Map<String, String> onlineUserSessionMap = new HashMap<>();
 
 	@Override
 	public synchronized void add(JocketSession session)
@@ -31,6 +28,10 @@ public class JocketLocalSessionStore implements JocketSessionStore
 			String userId = session.getUserId();
 			if (userId != null) {
 				updateUserId(id, userId, null);
+			}
+			String onlineUserId = session.getOnlineUserId();
+			if (onlineUserId != null) {
+				updateOnlineUserId(id, onlineUserId, null);
 			}
 		}
 		return session;
@@ -74,12 +75,18 @@ public class JocketLocalSessionStore implements JocketSessionStore
 			}
 		}
 		if (!JocketStringUtil.isEmpty(newUserId)) {
-			Set<String> sessionIds = userSessionMap.get(newUserId);
-			if (sessionIds == null) {
-				sessionIds = new HashSet<>();
-				userSessionMap.put(newUserId, sessionIds);
-			}
-			sessionIds.add(id);
+			userSessionMap.computeIfAbsent(newUserId, k -> new HashSet<>()).add(id);
+		}
+	}
+
+	@Override
+	public void updateOnlineUserId(String id, String oldOnlineUserId, String newOnlineUserId)
+	{
+		if (!JocketStringUtil.isEmpty(oldOnlineUserId)) {
+			onlineUserSessionMap.remove(oldOnlineUserId);
+		}
+		if (!JocketStringUtil.isEmpty(newOnlineUserId)) {
+			onlineUserSessionMap.put(newOnlineUserId, id);
 		}
 	}
 
@@ -100,6 +107,16 @@ public class JocketLocalSessionStore implements JocketSessionStore
 	}
 
 	@Override
+	public synchronized JocketSession getOnlineUserSession(String onlineUserId)
+	{
+		JocketSession session = sessionMap.get(onlineUserSessionMap.get(onlineUserId));
+		if (session != null && session.isOpen() && onlineUserId.equals(session.getOnlineUserId())) {
+			return session;
+		}
+		return null;
+	}
+
+	@Override
 	public synchronized List<JocketSession> checkStore()
 	{
 		List<JocketSession> brokenSessions = new ArrayList<>();
@@ -111,6 +128,11 @@ public class JocketLocalSessionStore implements JocketSessionStore
 		for (JocketSession session: brokenSessions) {
 			sessionMap.remove(session.getId());
 		}
+		for (Set<String> sessionIds: userSessionMap.values()) {
+			sessionIds.removeIf(sessionId -> !sessionMap.containsKey(sessionId));
+		}
+		userSessionMap.values().removeIf(Set::isEmpty);
+		onlineUserSessionMap.values().removeIf(sessionId -> !sessionMap.containsKey(sessionId));
 		return brokenSessions;
 	}
 
